@@ -1,20 +1,27 @@
 package api
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
+	"strconv"
 	"time"
 
 	"trusttrove/indexer/config"
+	"trusttrove/indexer/db"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stellar/go-stellar-sdk/keypair"
+	"github.com/stellar/go-stellar-sdk/strkey"
 	"github.com/stellar/go-stellar-sdk/txnbuild"
+	"github.com/stellar/go-stellar-sdk/xdr"
 )
 
 type APIHandler struct {
@@ -39,6 +46,251 @@ func GetServerKeypair(jwtSecret string) (*keypair.Full, error) {
 	return keypair.FromRawSeed(hash)
 }
 
+type JsonRpcRequest struct {
+	Jsonrpc string      `json:"jsonrpc"`
+	Id      int         `json:"id"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+}
+
+type JsonRpcResponse struct {
+	Jsonrpc string          `json:"jsonrpc"`
+	Id      int             `json:"id"`
+	Result  json.RawMessage `json:"result"`
+	Error   *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
+
+func CallSorobanRPC(rpcURL string, method string, params interface{}, result interface{}) error {
+	reqBody := JsonRpcRequest{
+		Jsonrpc: "2.0",
+		Id:      1,
+		Method:  method,
+		Params:  params,
+	}
+
+	bodyBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return err
+	}
+
+	resp, err := http.Post(rpcURL, "application/json", bytes.NewBuffer(bodyBytes))
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var rpcResp JsonRpcResponse
+	if err := json.NewDecoder(resp.Body).Decode(&rpcResp); err != nil {
+		return err
+	}
+
+	if rpcResp.Error != nil {
+		return fmt.Errorf("rpc error: %s (code %d)", rpcResp.Error.Message, rpcResp.Error.Code)
+	}
+
+	return json.Unmarshal(rpcResp.Result, result)
+}
+
+func ParseAddressToScAddress(addr string) (xdr.ScAddress, error) {
+	if len(addr) == 56 && addr[0] == 'G' {
+		rawBytes, err := strkey.Decode(strkey.VersionByteAccountID, addr)
+		if err != nil {
+			return xdr.ScAddress{}, err
+		}
+		var uint256 xdr.Uint256
+		copy(uint256[:], rawBytes)
+
+		accountId := xdr.AccountId{
+			Type:    xdr.PublicKeyTypePublicKeyTypeEd25519,
+			Ed25519: &uint256,
+		}
+		return xdr.ScAddress{
+			Type:      xdr.ScAddressTypeScAddressTypeAccount,
+			AccountId: &accountId,
+		}, nil
+	} else if len(addr) == 56 && addr[0] == 'C' {
+		rawBytes, err := strkey.Decode(strkey.VersionByteContract, addr)
+		if err != nil {
+			return xdr.ScAddress{}, err
+		}
+		var contractId xdr.ContractId
+		copy(contractId[:], rawBytes)
+		return xdr.ScAddress{
+			Type:       xdr.ScAddressTypeScAddressTypeContract,
+			ContractId: &contractId,
+		}, nil
+	}
+	return xdr.ScAddress{}, fmt.Errorf("invalid address format: %s", addr)
+}
+
+func MakeAddressScVal(addr string) (xdr.ScVal, error) {
+	scAddress, err := ParseAddressToScAddress(addr)
+	if err != nil {
+		return xdr.ScVal{}, err
+	}
+	return xdr.ScVal{
+		Type:    xdr.ScValTypeScvAddress,
+		Address: &scAddress,
+	}, nil
+}
+
+func MakeU128ScVal(val *big.Int) xdr.ScVal {
+	hi := new(big.Int).Rsh(val, 64).Uint64()
+	lo := new(big.Int).And(val, new(big.Int).SetUint64(0xffffffffffffffff)).Uint64()
+	parts := xdr.UInt128Parts{
+		Hi: xdr.Uint64(hi),
+		Lo: xdr.Uint64(lo),
+	}
+	return xdr.ScVal{
+		Type: xdr.ScValTypeScvU128,
+		U128: &parts,
+	}
+}
+
+func MakeU64ScVal(val uint64) xdr.ScVal {
+	u64Val := xdr.Uint64(val)
+	return xdr.ScVal{
+		Type: xdr.ScValTypeScvU64,
+		U64:  &u64Val,
+	}
+}
+
+func BuildInvokeContractOp(contractID string, method string, args []xdr.ScVal) (*txnbuild.InvokeHostFunction, error) {
+	contractAddress, err := ParseAddressToScAddress(contractID)
+	if err != nil {
+		return nil, err
+	}
+
+	symbolFunc := xdr.ScSymbol(method)
+	hostFn := xdr.HostFunction{
+		Type: xdr.HostFunctionTypeHostFunctionTypeInvokeContract,
+		InvokeContract: &xdr.InvokeContractArgs{
+			ContractAddress: contractAddress,
+			FunctionName:    symbolFunc,
+			Args:            args,
+		},
+	}
+
+	return &txnbuild.InvokeHostFunction{
+		HostFunction: hostFn,
+	}, nil
+}
+
+type SimulateResponse struct {
+	TransactionData string `json:"transactionData"`
+	MinResourceFee  string `json:"minResourceFee"`
+	Results         []struct {
+		Xdr string `json:"xdr"`
+	} `json:"results"`
+}
+
+type GetAccountResponse struct {
+	ID       string `json:"id"`
+	Sequence string `json:"sequence"`
+}
+
+func ReadContract(
+	rpcURL string,
+	contractID string,
+	method string,
+	args []xdr.ScVal,
+	serverKP *keypair.Full,
+) (xdr.ScVal, error) {
+	op, err := BuildInvokeContractOp(contractID, method, args)
+	if err != nil {
+		return xdr.ScVal{}, err
+	}
+
+	tx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
+		SourceAccount: &txnbuild.SimpleAccount{
+			AccountID: serverKP.Address(),
+			Sequence:  0,
+		},
+		IncrementSequenceNum: false,
+		BaseFee:              txnbuild.MinBaseFee,
+		Preconditions: txnbuild.Preconditions{
+			TimeBounds: txnbuild.TimeBounds{
+				MinTime: 0,
+				MaxTime: time.Now().Add(1 * time.Hour).Unix(),
+			},
+		},
+		Operations: []txnbuild.Operation{op},
+	})
+	if err != nil {
+		return xdr.ScVal{}, err
+	}
+
+	txBase64, err := tx.Base64()
+	if err != nil {
+		return xdr.ScVal{}, err
+	}
+
+	var simResp SimulateResponse
+	err = CallSorobanRPC(rpcURL, "simulateTransaction", map[string]string{"transaction": txBase64}, &simResp)
+	if err != nil {
+		return xdr.ScVal{}, err
+	}
+
+	if len(simResp.Results) == 0 {
+		return xdr.ScVal{}, errors.New("no result from simulation")
+	}
+
+	var val xdr.ScVal
+	err = xdr.SafeUnmarshalBase64(simResp.Results[0].Xdr, &val)
+	if err != nil {
+		return xdr.ScVal{}, err
+	}
+
+	return val, nil
+}
+
+func GetMapVal(val xdr.ScVal, key string) (xdr.ScVal, bool) {
+	if val.Type != xdr.ScValTypeScvMap || val.Map == nil || *val.Map == nil {
+		return xdr.ScVal{}, false
+	}
+	for _, entry := range **val.Map {
+		if entry.Key.Type == xdr.ScValTypeScvSymbol && entry.Key.Sym != nil {
+			if string(*entry.Key.Sym) == key {
+				return entry.Val, true
+			}
+		}
+	}
+	return xdr.ScVal{}, false
+}
+
+func GetU128Val(val xdr.ScVal) (string, bool) {
+	if val.Type != xdr.ScValTypeScvU128 || val.U128 == nil {
+		return "0", false
+	}
+	hi := big.NewInt(int64(val.U128.Hi))
+	lo := big.NewInt(int64(val.U128.Lo))
+	result := new(big.Int).Lsh(hi, 64)
+	result.Or(result, lo)
+	return result.String(), true
+}
+
+func GetU32Val(val xdr.ScVal) (uint32, bool) {
+	if val.Type != xdr.ScValTypeScvU32 || val.U32 == nil {
+		return 0, false
+	}
+	return uint32(*val.U32), true
+}
+
+func ParseInvoiceIDFromResult(resultXDR string) (string, error) {
+	var val xdr.ScVal
+	err := xdr.SafeUnmarshalBase64(resultXDR, &val)
+	if err != nil {
+		return "", err
+	}
+	if val.Bytes == nil {
+		return "", errors.New("result is not bytes")
+	}
+	return fmt.Sprintf("%x", *val.Bytes), nil
+}
+
 // GenerateChallenge constructs and signs a SEP-10 challenge transaction
 func GenerateChallenge(serverKP *keypair.Full, clientAddr string, passphrase string) (string, error) {
 	nonce := make([]byte, 48)
@@ -54,7 +306,12 @@ func GenerateChallenge(serverKP *keypair.Full, clientAddr string, passphrase str
 		},
 		IncrementSequenceNum: false,
 		BaseFee:              txnbuild.MinBaseFee,
-		Timebounds:           txnbuild.NewTimebounds(time.Now().Unix(), time.Now().Add(15*time.Minute).Unix()),
+		Preconditions: txnbuild.Preconditions{
+			TimeBounds: txnbuild.TimeBounds{
+				MinTime: time.Now().Unix(),
+				MaxTime: time.Now().Add(15 * time.Minute).Unix(),
+			},
+		},
 		Operations: []txnbuild.Operation{
 			&txnbuild.ManageData{
 				SourceAccount: clientAddr,
@@ -77,7 +334,7 @@ func GenerateChallenge(serverKP *keypair.Full, clientAddr string, passphrase str
 
 // VerifyChallenge parses the signed transaction and checks the server and client signatures
 func VerifyChallenge(signedXDR string, serverKP *keypair.Full, passphrase string) (string, error) {
-	genericTx, err := txnbuild.Parse(signedXDR)
+	genericTx, err := txnbuild.TransactionFromXDR(signedXDR)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse XDR: %w", err)
 	}
@@ -87,7 +344,8 @@ func VerifyChallenge(signedXDR string, serverKP *keypair.Full, passphrase string
 		return "", errors.New("invalid transaction type")
 	}
 
-	if tx.SourceAccount().GetAccountID() != serverKP.Address() {
+	srcAcc := tx.SourceAccount()
+	if srcAcc.AccountID != serverKP.Address() {
 		return "", errors.New("invalid server source account")
 	}
 
@@ -110,7 +368,7 @@ func VerifyChallenge(signedXDR string, serverKP *keypair.Full, passphrase string
 	}
 
 	tb := tx.Timebounds()
-	if tb == nil {
+	if tb.MaxTime == 0 {
 		return "", errors.New("timebounds must be set")
 	}
 	now := time.Now().Unix()
@@ -172,7 +430,6 @@ func (h *APIHandler) HandleGetAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate client address format
 	_, err := keypair.Parse(address)
 	if err != nil {
 		http.Error(w, "invalid address format", http.StatusBadRequest)
@@ -222,5 +479,308 @@ func (h *APIHandler) HandlePostAuth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
 		"token": token,
+	})
+}
+
+// POST /invoices (protected)
+func (h *APIHandler) HandleCreateInvoice(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		Buyer     string `json:"buyer"`
+		FaceValue string `json:"face_value"`
+		DueDate   int64  `json:"due_date"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	issuer := r.Context().Value("user_address").(string)
+
+	if body.Buyer == "" || body.FaceValue == "" || body.DueDate <= 0 {
+		http.Error(w, "missing required invoice parameters", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := keypair.Parse(body.Buyer); err != nil {
+		http.Error(w, "invalid buyer address", http.StatusBadRequest)
+		return
+	}
+
+	faceValueBig, ok := new(big.Int).SetString(body.FaceValue, 10)
+	if !ok || faceValueBig.Sign() <= 0 {
+		http.Error(w, "invalid face value", http.StatusBadRequest)
+		return
+	}
+
+	var accResp GetAccountResponse
+	err := CallSorobanRPC(h.cfg.SorobanRPCURL, "getAccount", map[string]string{"address": h.serverKP.Address()}, &accResp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to fetch server account: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	seq, err := strconv.ParseInt(accResp.Sequence, 10, 64)
+	if err != nil {
+		http.Error(w, "failed to parse sequence number", http.StatusInternalServerError)
+		return
+	}
+
+	issuerVal, err := MakeAddressScVal(issuer)
+	if err != nil {
+		http.Error(w, "failed to build issuer address", http.StatusInternalServerError)
+		return
+	}
+	buyerVal, err := MakeAddressScVal(body.Buyer)
+	if err != nil {
+		http.Error(w, "failed to build buyer address", http.StatusInternalServerError)
+		return
+	}
+	faceValueVal := MakeU128ScVal(faceValueBig)
+	dueDateVal := MakeU64ScVal(uint64(body.DueDate))
+
+	op, err := BuildInvokeContractOp(h.cfg.InvoiceContractID, "create", []xdr.ScVal{issuerVal, buyerVal, faceValueVal, dueDateVal})
+	if err != nil {
+		http.Error(w, "failed to build contract operation", http.StatusInternalServerError)
+		return
+	}
+
+	tx, err := txnbuild.NewTransaction(txnbuild.TransactionParams{
+		SourceAccount: &txnbuild.SimpleAccount{
+			AccountID: h.serverKP.Address(),
+			Sequence:  seq,
+		},
+		IncrementSequenceNum: true,
+		BaseFee:              txnbuild.MinBaseFee,
+		Preconditions: txnbuild.Preconditions{
+			TimeBounds: txnbuild.TimeBounds{
+				MinTime: 0,
+				MaxTime: time.Now().Add(1 * time.Hour).Unix(),
+			},
+		},
+		Operations: []txnbuild.Operation{op},
+	})
+	if err != nil {
+		http.Error(w, "failed to construct transaction", http.StatusInternalServerError)
+		return
+	}
+
+	txBase64, err := tx.Base64()
+	if err != nil {
+		http.Error(w, "failed to encode transaction to base64", http.StatusInternalServerError)
+		return
+	}
+
+	var simResp SimulateResponse
+	err = CallSorobanRPC(h.cfg.SorobanRPCURL, "simulateTransaction", map[string]string{"transaction": txBase64}, &simResp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("simulation failed: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if len(simResp.Results) == 0 {
+		http.Error(w, "simulation did not yield a result", http.StatusInternalServerError)
+		return
+	}
+
+	invoiceID, err := ParseInvoiceIDFromResult(simResp.Results[0].Xdr)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse generated invoice id: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	// Read and modify the envelope for Soroban Data and Fee
+	var env xdr.TransactionEnvelope
+	err = xdr.SafeUnmarshalBase64(txBase64, &env)
+	if err != nil {
+		http.Error(w, "failed to unmarshal tx envelope", http.StatusInternalServerError)
+		return
+	}
+
+	var txData xdr.SorobanTransactionData
+	err = xdr.SafeUnmarshalBase64(simResp.TransactionData, &txData)
+	if err != nil {
+		http.Error(w, "failed to unmarshal simulation transaction data", http.StatusInternalServerError)
+		return
+	}
+
+	env.V1.Tx.Ext.V = 1
+	env.V1.Tx.Ext.SorobanData = &txData
+
+	resFee, err := strconv.ParseInt(simResp.MinResourceFee, 10, 64)
+	if err != nil {
+		http.Error(w, "failed to parse resource fee", http.StatusInternalServerError)
+		return
+	}
+	env.V1.Tx.Fee = xdr.Uint32(tx.BaseFee() + resFee)
+
+	// Marshal env back to base64
+	envBytes, err := env.MarshalBinary()
+	if err != nil {
+		http.Error(w, "failed to marshal modified envelope", http.StatusInternalServerError)
+		return
+	}
+	envBase64 := base64.StdEncoding.EncodeToString(envBytes)
+
+	// Parse back as a Transaction to sign
+	genericTx, err := txnbuild.TransactionFromXDR(envBase64)
+	if err != nil {
+		http.Error(w, "failed to parse modified transaction envelope", http.StatusInternalServerError)
+		return
+	}
+	tx, ok = genericTx.Transaction()
+	if !ok {
+		http.Error(w, "invalid transaction envelope", http.StatusInternalServerError)
+		return
+	}
+
+	tx, err = tx.Sign(h.cfg.NetworkPassphrase, h.serverKP)
+	if err != nil {
+		http.Error(w, "failed to sign transaction", http.StatusInternalServerError)
+		return
+	}
+
+	signedBase64, err := tx.Base64()
+	if err != nil {
+		http.Error(w, "failed to encode signed transaction", http.StatusInternalServerError)
+		return
+	}
+
+	var submitResp struct {
+		Hash   string `json:"hash"`
+		Status string `json:"status"`
+		Error  string `json:"error"`
+	}
+	err = CallSorobanRPC(h.cfg.SorobanRPCURL, "sendTransaction", map[string]string{"transaction": signedBase64}, &submitResp)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to send transaction: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if submitResp.Status == "ERROR" {
+		http.Error(w, fmt.Sprintf("transaction submission rejected: %s", submitResp.Error), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	json.NewEncoder(w).Encode(map[string]string{
+		"invoice_id":       invoiceID,
+		"transaction_hash": submitResp.Hash,
+		"status":           submitResp.Status,
+	})
+}
+
+// GET /invoices/{id}
+func (h *APIHandler) HandleGetInvoiceByID(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "missing invoice id", http.StatusBadRequest)
+		return
+	}
+
+	invoice, err := db.GetInvoiceByID(r.Context(), id)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to retrieve invoice: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if invoice == nil {
+		http.Error(w, "invoice not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(invoice)
+}
+
+// GET /invoices
+func (h *APIHandler) HandleGetInvoices(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status")
+	issuer := r.URL.Query().Get("issuer")
+
+	invoices, err := db.GetInvoices(r.Context(), status, issuer)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to retrieve invoices: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(invoices)
+}
+
+// GET /pool/stats
+func (h *APIHandler) HandleGetPoolStats(w http.ResponseWriter, r *http.Request) {
+	stats, err := db.GetPoolStats(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to retrieve pool statistics: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if stats == nil {
+		stats = &db.DbPoolStats{
+			TotalDeposits:         "0",
+			TotalFunded:           "0",
+			AvailableLiquidity:    "0",
+			UtilizationRateBps:    0,
+			TotalYieldDistributed: "0",
+			ActiveInvoiceCount:    0,
+			UpdatedAt:             time.Now(),
+		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
+}
+
+// GET /pool/position/{address}
+func (h *APIHandler) HandleGetLPPosition(w http.ResponseWriter, r *http.Request) {
+	address := chi.URLParam(r, "address")
+	if address == "" {
+		http.Error(w, "missing address parameter", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := keypair.Parse(address); err != nil {
+		http.Error(w, "invalid address format", http.StatusBadRequest)
+		return
+	}
+
+	addrVal, err := MakeAddressScVal(address)
+	if err != nil {
+		http.Error(w, "failed to build address ScVal", http.StatusInternalServerError)
+		return
+	}
+
+	scValResult, err := ReadContract(h.cfg.SorobanRPCURL, h.cfg.PoolContractID, "get_lp_position", []xdr.ScVal{addrVal}, h.serverKP)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to read LP position from pool: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	shares := "0"
+	usdcValue := "0"
+	yieldEarned := "0"
+	depositCount := 0
+
+	if val, ok := GetMapVal(scValResult, "shares"); ok {
+		shares, _ = GetU128Val(val)
+	}
+	if val, ok := GetMapVal(scValResult, "usdc_value"); ok {
+		usdcValue, _ = GetU128Val(val)
+	}
+	if val, ok := GetMapVal(scValResult, "yield_earned"); ok {
+		yieldEarned, _ = GetU128Val(val)
+	}
+	if val, ok := GetMapVal(scValResult, "deposit_count"); ok {
+		depVal, _ := GetU32Val(val)
+		depositCount = int(depVal)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"shares":        shares,
+		"usdc_value":    usdcValue,
+		"yield_earned":  yieldEarned,
+		"deposit_count": depositCount,
 	})
 }
