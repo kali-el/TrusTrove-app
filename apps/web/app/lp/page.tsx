@@ -7,11 +7,11 @@ import { useWalletStore } from '@/store/wallet';
 import { WalletConnect } from '@/components/shared/WalletConnect';
 import { Button } from '@/components/ui/button';
 import { TransactionPending } from '@/components/shared/TransactionPending';
-import { TrendingUp, Coins, Unlock, Percent, Landmark, Wallet, ShieldAlert, Sparkles, Activity } from 'lucide-react';
+import { Coins, Unlock, Landmark, Wallet, ShieldAlert, Activity } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function LPDashboard() {
-  const { address, connected } = useWalletStore();
+  const { connected } = useWalletStore();
   const {
     stats,
     isStatsLoading,

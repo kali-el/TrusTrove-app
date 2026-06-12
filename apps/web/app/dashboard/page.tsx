@@ -10,7 +10,7 @@ import { useInvoices } from '@/hooks/useInvoices';
 import { useWalletStore } from '@/store/wallet';
 import { WalletConnect } from '@/components/shared/WalletConnect';
 import { InvoiceCardSkeleton } from '@/components/shared/SkeletonLoader';
-import { FileText, Coins, CheckSquare, Layers, Plus, Activity, Calendar, ShieldAlert } from 'lucide-react';
+import { Layers, Plus } from 'lucide-react';
 import { Invoice } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -21,9 +21,7 @@ export default function SMEDashboard() {
   const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Compute stats
-  const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.status !== 'Repaid' ? inv.faceValue : 0n), 0n);
   const totalFunded = invoices.reduce((sum, inv) => sum + inv.fundedAmount, 0n);
-  const totalRepaid = invoices.reduce((sum, inv) => sum + (inv.status === 'Repaid' ? inv.faceValue : 0n), 0n);
   const totalInvoicesCreated = invoices.length;
   const totalListed = invoices.filter(i => i.status === 'Listed').length;
   const totalFundedActive = invoices.filter(i => i.status === 'Funded' || i.status === 'Active' || i.status === 'Confirmed').length;

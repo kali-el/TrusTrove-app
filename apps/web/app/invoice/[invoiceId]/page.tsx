@@ -18,9 +18,7 @@ import {
   Lock, 
   Users, 
   Activity, 
-  ChevronRight,
-  TrendingUp,
-  FileText
+  TrendingUp
 } from 'lucide-react';
 
 export default function InvoiceDetailPage() {

@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Invoice, InvoiceStatus as StatusType } from '@/types';
+import { Invoice } from '@/types';
 import { InvoiceStatus } from './InvoiceStatus';
 import { useInvoices } from '@/hooks/useInvoices';
 import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/store/wallet';
 import { motion } from 'framer-motion';
-import { Calendar, ShieldAlert, Copy, Check, ArrowRight, Truck, Landmark, Wallet, CheckSquare, Clock } from 'lucide-react';
+import { Calendar, ShieldAlert, Copy, Check, Truck, Landmark, Wallet, CheckSquare, Clock } from 'lucide-react';
 
 interface InvoiceCardProps {
   invoice: Invoice;

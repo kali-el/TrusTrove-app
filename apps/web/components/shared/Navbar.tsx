@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { WalletConnect } from './WalletConnect';
 import { useWalletStore } from '@/store/wallet';
-import { Layers, Shield, Terminal } from 'lucide-react';
+import { Shield, Terminal } from 'lucide-react';
 
 export function Navbar() {
   const pathname = usePathname();

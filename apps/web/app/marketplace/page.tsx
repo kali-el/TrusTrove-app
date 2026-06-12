@@ -7,13 +7,10 @@ import { InvoiceCard } from '@/components/invoice/InvoiceCard';
 import { useInvoices } from '@/hooks/useInvoices';
 import { usePool } from '@/hooks/usePool';
 import { useWalletStore } from '@/store/wallet';
-import { WalletConnect } from '@/components/shared/WalletConnect';
-import { ShoppingBag, Filter, ShieldAlert, Sliders, Layers } from 'lucide-react';
 import { Invoice } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
 
 export default function Marketplace() {
-  const { address, connected, role } = useWalletStore();
+  const { connected, role } = useWalletStore();
   const { stats, isStatsLoading } = usePool();
   const [statusFilter, setStatusFilter] = useState<string>('Listed');
   

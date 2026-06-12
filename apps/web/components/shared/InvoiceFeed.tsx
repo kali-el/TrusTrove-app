@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowDownLeft, Landmark, Zap } from 'lucide-react';
+import { ArrowDownLeft, Zap } from 'lucide-react';
 
 interface FeedItem {
   id: string;

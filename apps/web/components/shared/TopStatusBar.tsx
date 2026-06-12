@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Terminal, ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 
 interface TickerItem {
   id: string;

@@ -14,15 +14,10 @@ import {
   Layers, 
   ArrowRight, 
   Coins, 
-  Compass, 
-  HelpCircle, 
-  Briefcase, 
   Database,
   ArrowRightLeft,
-  ChevronRight,
   Landmark
 } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 export default function Home() {
   const { connected } = useWalletStore();

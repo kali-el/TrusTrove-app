@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useInvoices } from '@/hooks/useInvoices';
 import { Button } from '@/components/ui/button';
-import { ShieldAlert, PlusCircle, Sparkles, Check, ArrowRight } from 'lucide-react';
+import { ShieldAlert, PlusCircle } from 'lucide-react';
 
 interface InvoiceFormProps {
   onSuccess?: () => void;
@@ -19,7 +19,6 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2>(1); // Step 1: Input, Step 2: Sign Summary
-  const [createdInvoiceId, setCreatedInvoiceId] = useState<string | null>(null);
   const [isListing, setIsListing] = useState(false);
 
   const parsedValue = parseFloat(faceValue.replace(/,/g, '')) || 0;
@@ -65,7 +64,6 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       });
 
       const invoiceId = res.invoice_id;
-      setCreatedInvoiceId(invoiceId);
 
       // Transaction 2: Immediate List
       if (immediateList && invoiceId) {

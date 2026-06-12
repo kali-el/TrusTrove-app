@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Landmark, ArrowRight, DollarSign, Wallet, ShieldAlert, Sparkles, TrendingUp } from 'lucide-react';
+import { Sparkles, TrendingUp } from 'lucide-react';
 
 // Custom CountUp hook to animate numbers smoothly in an operations terminal style
 function AnimatedValue({ value, suffix = '', prefix = '' }: { value: number; suffix?: string; prefix?: string }) {
@@ -34,6 +33,7 @@ function AnimatedValue({ value, suffix = '', prefix = '' }: { value: number; suf
     };
 
     requestAnimationFrame(updateNumber);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value]);
 
   return (

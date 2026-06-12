@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { InvoiceStatus } from '@/types';
-import { Check, Dot } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 interface StatusTimelineProps {
   status: InvoiceStatus;
@@ -83,7 +83,6 @@ export function StatusTimeline({ status, timestamps }: StatusTimelineProps) {
         {steps.map((step, idx) => {
           const isCompleted = idx < currentIdx;
           const isCurrent = idx === currentIdx;
-          const isFuture = idx > currentIdx;
           const ts = getStepTimestamp(step.key);
 
           return (
