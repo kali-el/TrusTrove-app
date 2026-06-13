@@ -80,6 +80,13 @@ func NewRouter(h *APIHandler) *chi.Mux {
 	r.Use(middleware.Recoverer)
 	r.Use(CORSMiddleware())
 
+	// Health check
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status": "ok"}`))
+	})
+
 	// Unprotected authentication routes
 	r.Get("/auth", h.HandleGetAuth)
 	r.Post("/auth", h.HandlePostAuth)
