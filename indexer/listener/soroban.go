@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"trusttrove/indexer/api"
@@ -38,7 +37,7 @@ type rpcEvent struct {
 
 // GetEventsResult represents the result field of getEvents RPC response
 type GetEventsResult struct {
-	LatestLedger string     `json:"latestLedger"`
+	LatestLedger uint32     `json:"latestLedger"`
 	Events       []rpcEvent `json:"events"`
 	Cursor       string     `json:"cursor"`
 }
@@ -188,11 +187,8 @@ func (l *EventListener) pollEvents(ctx context.Context, startLedger int32) (int3
 			return startLedger, fmt.Errorf("call getEvents (startLedger=%d, cursor=%s): %w", startLedger, cursor, err)
 		}
 
-		if res.LatestLedger != "" {
-			seq, err := strconv.ParseInt(res.LatestLedger, 10, 32)
-			if err == nil {
-				latestLedgerSeq = int32(seq)
-			}
+		if res.LatestLedger != 0 {
+			latestLedgerSeq = int32(res.LatestLedger)
 		}
 
 		for _, ev := range res.Events {
