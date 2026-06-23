@@ -31,6 +31,7 @@
 ## Developer Guide
 * [Local Setup](developer-guide/local-setup.md)
 * [Environment Variables](developer-guide/environment-variables.md)
+* [Mainnet Setup](developer-guide/mainnet-setup.md)
 * [SDK Reference](developer-guide/sdk-reference.md)
 * [Indexer API Reference](developer-guide/indexer-api-reference.md)
 
