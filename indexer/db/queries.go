@@ -37,6 +37,45 @@ type DbPoolStats struct {
 	UpdatedAt             time.Time `json:"updated_at"`
 }
 
+type ProtocolStats struct {
+	TotalUSDCFinanced  string `json:"total_usdc_financed"`
+	ActiveInvoiceCount int    `json:"active_invoice_count"`
+	TotalInvoices      int    `json:"total_invoices"`
+	TotalRepaid        int    `json:"total_repaid"`
+	TotalDefaulted     int    `json:"total_defaulted"`
+	AverageYieldBps    int    `json:"average_yield_bps"`
+	PoolUtilizationBps int    `json:"pool_utilization_bps"`
+}
+
+func GetProtocolStats(ctx context.Context) (*ProtocolStats, error) {
+	query := `
+		SELECT
+			COALESCE(SUM(funded_amount) FILTER (WHERE status IN ('funded', 'shipped', 'confirmed', 'repaid')), 0)::TEXT AS total_usdc_financed,
+			COUNT(*) FILTER (WHERE status IN ('funded', 'shipped', 'confirmed')) AS active_invoice_count,
+			COUNT(*) AS total_invoices,
+			COUNT(*) FILTER (WHERE status = 'repaid') AS total_repaid,
+			COUNT(*) FILTER (WHERE status = 'defaulted') AS total_defaulted,
+			COALESCE(AVG(discount_bps) FILTER (WHERE status IN ('funded', 'shipped', 'confirmed', 'repaid')), 0)::INTEGER AS average_yield_bps,
+			COALESCE((SELECT utilization_rate_bps FROM pool_snapshots WHERE id = 1), 0) AS pool_utilization_bps
+		FROM invoices
+	`
+	row := Pool.QueryRow(ctx, query)
+	var stats ProtocolStats
+	err := row.Scan(
+		&stats.TotalUSDCFinanced,
+		&stats.ActiveInvoiceCount,
+		&stats.TotalInvoices,
+		&stats.TotalRepaid,
+		&stats.TotalDefaulted,
+		&stats.AverageYieldBps,
+		&stats.PoolUtilizationBps,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("queries: get protocol stats: %w", err)
+	}
+	return &stats, nil
+}
+
 func InsertInvoice(ctx context.Context, inv *DbInvoice) error {
 	query := `
 		INSERT INTO invoices (

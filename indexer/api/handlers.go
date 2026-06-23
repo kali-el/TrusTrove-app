@@ -11,6 +11,7 @@ import (
 	"math/big"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"trusttrove/indexer/config"
@@ -25,8 +26,11 @@ import (
 )
 
 type APIHandler struct {
-	cfg      *config.Config
-	serverKP *keypair.Full
+	cfg         *config.Config
+	serverKP    *keypair.Full
+	statsMu     sync.Mutex
+	statsData   *db.ProtocolStats
+	statsCached time.Time
 }
 
 func NewAPIHandler(cfg *config.Config) (*APIHandler, error) {
@@ -706,6 +710,33 @@ func (h *APIHandler) HandleGetInvoices(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(invoices)
+}
+
+// GET /stats
+func (h *APIHandler) HandleGetStats(w http.ResponseWriter, r *http.Request) {
+	h.statsMu.Lock()
+	if h.statsData != nil && time.Since(h.statsCached) < 30*time.Second {
+		data := h.statsData
+		h.statsMu.Unlock()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(data)
+		return
+	}
+	h.statsMu.Unlock()
+
+	stats, err := db.GetProtocolStats(r.Context())
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to retrieve protocol stats: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	h.statsMu.Lock()
+	h.statsData = stats
+	h.statsCached = time.Now()
+	h.statsMu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(stats)
 }
 
 // GET /pool/stats
