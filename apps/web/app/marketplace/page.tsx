@@ -165,6 +165,25 @@ export default function Marketplace() {
               invoices={filteredAndSortedInvoices} 
               onSelectInvoice={(invoice) => setSelectedInvoice(invoice)} 
               activeId={selectedInvoice?.id}
+              emptyState={
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                  <p className="text-slate-500 text-xs font-mono mb-6 leading-relaxed max-w-xs">
+                    No invoices match your filters
+                  </p>
+                  <button
+                    onClick={() => {
+                      setStatusFilter('Listed');
+                      setMinAmount('');
+                      setMaxAmount('');
+                      setMaxDiscount('500');
+                      setSelectedInvoice(null);
+                    }}
+                    className="border border-border hover:border-primary/50 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider rounded px-4 py-2.5 transition-all"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              }
             />
 
             {/* Mobile Cards view (hidden on desktop, but let's implement layout) */}

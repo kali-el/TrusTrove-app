@@ -183,6 +183,20 @@ export default function SMEDashboard() {
                 invoices={invoices} 
                 onSelectInvoice={(invoice) => setSelectedInvoice(invoice)}
                 activeId={selectedInvoice?.id}
+                emptyState={
+                  <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                    <p className="text-slate-500 text-xs font-mono mb-6 leading-relaxed max-w-xs">
+                      Create your first invoice to get started
+                    </p>
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="bg-primary hover:bg-primary-hover text-black font-bold uppercase tracking-wider text-xs rounded px-4 py-2.5 flex items-center gap-1.5 shadow-[0_0_15px_rgba(0,212,170,0.1)] transition-all"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Create Invoice
+                    </button>
+                  </div>
+                }
               />
             )}
 
