@@ -42,8 +42,9 @@ export function useWallet() {
     setError(null);
     try {
       const addr = await connectFreighter();
+      const stellarNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET';
       // Defaults to testnet passphrase or string as configured
-      connect(addr, 'testnet');
+      connect(addr, stellarNetwork);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Failed to connect wallet';
       setError(message);

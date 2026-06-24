@@ -62,9 +62,10 @@ export function useAuth() {
       const { transaction } = challengeData;
 
       // 2. Sign with Freighter wallet
-      const networkPassphrase = process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || Networks.TESTNET;
+      const stellarNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK || 'TESTNET';
+      const networkPassphrase = process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || (stellarNetwork === 'PUBLIC' ? Networks.PUBLIC : Networks.TESTNET);
       const signedXdr = await signTransaction(transaction, {
-        network: 'TESTNET',
+        network: stellarNetwork as 'PUBLIC' | 'TESTNET',
         networkPassphrase,
         accountToSign: address,
       });
