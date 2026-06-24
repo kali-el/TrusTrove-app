@@ -94,7 +94,8 @@ func NewRouter(h *APIHandler) *chi.Mux {
 	// Public protocol stats (cached, no auth)
 	r.Get("/stats", h.HandleGetStats)
 
-	// Invoices and Pool routes
+	// Invoices, Events, and Pool routes
+	r.Get("/events", h.HandleGetEvents)
 	r.Get("/invoices/{id}", h.HandleGetInvoiceByID)
 	r.Get("/invoices", h.HandleGetInvoices)
 	r.Get("/pool/stats", h.HandleGetPoolStats)

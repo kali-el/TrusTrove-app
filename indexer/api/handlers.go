@@ -763,6 +763,30 @@ func (h *APIHandler) HandleGetPoolStats(w http.ResponseWriter, r *http.Request) 
 	json.NewEncoder(w).Encode(stats)
 }
 
+// GET /events
+func (h *APIHandler) HandleGetEvents(w http.ResponseWriter, r *http.Request) {
+	limitStr := r.URL.Query().Get("limit")
+	limit := 20
+	if limitStr != "" {
+		if parsed, err := strconv.Atoi(limitStr); err == nil && parsed > 0 {
+			limit = parsed
+		}
+	}
+
+	events, err := db.GetRecentEvents(r.Context(), limit)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to retrieve events: %s", err.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if events == nil {
+		events = []*db.EventLog{}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(events)
+}
+
 // GET /pool/position/{address}
 func (h *APIHandler) HandleGetLPPosition(w http.ResponseWriter, r *http.Request) {
 	address := chi.URLParam(r, "address")

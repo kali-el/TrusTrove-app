@@ -318,6 +318,41 @@ func IsEventProcessed(ctx context.Context, eventID string) (bool, error) {
 	return exists, nil
 }
 
+type EventLog struct {
+	ID             int             `json:"id"`
+	EventID        string          `json:"event_id"`
+	ContractID     string          `json:"contract_id"`
+	Ledger         int32           `json:"ledger"`
+	LedgerClosedAt int64           `json:"ledger_closed_at"`
+	EventType      string          `json:"event_type"`
+	Data           json.RawMessage `json:"data"`
+}
+
+func GetRecentEvents(ctx context.Context, limit int) ([]*EventLog, error) {
+	query := `
+		SELECT id, event_id, contract_id, ledger, ledger_closed_at, event_type, data
+		FROM events_log
+		ORDER BY ledger_closed_at DESC
+		LIMIT $1
+	`
+	rows, err := Pool.Query(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("queries: get recent events: %w", err)
+	}
+	defer rows.Close()
+
+	var events []*EventLog
+	for rows.Next() {
+		var ev EventLog
+		err := rows.Scan(&ev.ID, &ev.EventID, &ev.ContractID, &ev.Ledger, &ev.LedgerClosedAt, &ev.EventType, &ev.Data)
+		if err != nil {
+			return nil, fmt.Errorf("queries: scan event: %w", err)
+		}
+		events = append(events, &ev)
+	}
+	return events, nil
+}
+
 func GetLatestProcessedLedger(ctx context.Context) (int32, error) {
 	query := `SELECT COALESCE(MAX(ledger), 0) FROM events_log`
 	var ledger int32

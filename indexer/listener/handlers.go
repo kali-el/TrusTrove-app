@@ -403,8 +403,38 @@ func (l *EventListener) handleEvent(ctx context.Context, event SorobanEvent) err
 		return fmt.Errorf("handler for %s failed: %w", eventName, err)
 	}
 
+	// Build structured data for the event log
+	logData := map[string]interface{}{}
+
+	// Try to extract invoice_id from topic[1] for events that carry it
+	if len(event.Topic) >= 2 && eventName != "create" && eventName != "InvoiceCreated" {
+		var topicVal xdr.ScVal
+		if err := xdr.SafeUnmarshalBase64(event.Topic[1], &topicVal); err == nil {
+			invoiceID := parseBytes(topicVal)
+			if invoiceID != "" {
+				logData["invoice_id"] = invoiceID
+			}
+		}
+	}
+
+	// For InvoiceCreated, extract from the value payload
+	if eventName == "create" || eventName == "InvoiceCreated" {
+		var val xdr.ScVal
+		if err := xdr.SafeUnmarshalBase64(event.Value, &val); err == nil {
+			if idVal, ok := getMapValue(val, "id"); ok {
+				logData["invoice_id"] = parseBytes(idVal)
+			}
+			if issuerVal, ok := getMapValue(val, "issuer"); ok {
+				logData["issuer"] = parseAddress(issuerVal)
+			}
+			if buyerVal, ok := getMapValue(val, "buyer"); ok {
+				logData["buyer"] = parseAddress(buyerVal)
+			}
+		}
+	}
+
 	// Log event in database to prevent double processing
-	err = db.LogEvent(ctx, event.ID, event.ContractID, event.Ledger, ledgerClosedAt, eventName, event.Value)
+	err = db.LogEvent(ctx, event.ID, event.ContractID, event.Ledger, ledgerClosedAt, eventName, logData)
 	if err != nil {
 		slog.Error("Failed to log event in DB", "eventId", event.ID, "error", err)
 	}

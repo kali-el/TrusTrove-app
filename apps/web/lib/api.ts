@@ -1,5 +1,5 @@
 import { useWalletStore } from '@/store/wallet';
-import { AssetType, Invoice, PoolStats, LPPosition } from '@/types';
+import { AssetType, Invoice, PoolStats, LPPosition, EventLog } from '@/types';
 
 const getApiUrl = () => {
   return process.env.NEXT_PUBLIC_INDEXER_API_URL || 'http://localhost:8080';
@@ -124,4 +124,22 @@ export async function getPoolStats(): Promise<PoolStats> {
 export async function getLPPosition(address: string): Promise<LPPosition> {
   const raw = await apiFetch<any>(`/pool/position/${address}`);
   return parseRawLPPosition(raw);
+}
+
+export async function getRecentEvents(limit?: number): Promise<EventLog[]> {
+  const query = limit ? `?limit=${limit}` : '';
+  const rawList = await apiFetch<any[]>(`/events${query}`);
+  return rawList.map(parseRawEventLog);
+}
+
+function parseRawEventLog(raw: any): EventLog {
+  return {
+    id: raw.id,
+    event_id: raw.event_id,
+    contract_id: raw.contract_id,
+    ledger: raw.ledger,
+    ledger_closed_at: raw.ledger_closed_at,
+    event_type: raw.event_type,
+    data: raw.data || {},
+  };
 }

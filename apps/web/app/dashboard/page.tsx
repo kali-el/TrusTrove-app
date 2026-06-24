@@ -7,6 +7,7 @@ import { InvoiceForm } from '@/components/invoice/InvoiceForm';
 import { InvoiceTable } from '@/components/invoice/InvoiceTable';
 import { InvoiceCard } from '@/components/invoice/InvoiceCard';
 import { useInvoices } from '@/hooks/useInvoices';
+import { useRecentEvents } from '@/hooks/useEvents';
 import { useWalletStore } from '@/store/wallet';
 import { WalletConnect } from '@/components/shared/WalletConnect';
 import { InvoiceTableSkeleton, ActivityTimelineSkeleton } from '@/components/shared/SkeletonLoader';
@@ -18,6 +19,7 @@ import { formatAmount } from '@/lib/assets';
 export default function SMEDashboard() {
   const { address, connected, role } = useWalletStore();
   const { invoices, isLoading } = useInvoices({ issuer: address || undefined });
+  const { events, isLoading: eventsLoading } = useRecentEvents(10);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -31,13 +33,68 @@ export default function SMEDashboard() {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
-  // Mock recent activity timeline for demo purposes
-  const recentEvents = [
-    { id: 1, type: 'Invoice Created', details: 'INV#a8f9... created for buyer GDK2...', time: '10 min ago', status: 'Created' },
-    { id: 2, type: 'Invoice Listed', details: 'INV#f39c... listed at 2.0% discount', time: '1 hour ago', status: 'Listed' },
-    { id: 3, type: 'Invoice Funded', details: 'INV#b760... funded by Pool (50,000 USDC)', time: '4 hours ago', status: 'Funded' },
-    { id: 4, type: 'Delivery Confirmed', details: 'Buyer confirmed shipment delivery for INV#c81a...', time: '1 day ago', status: 'Confirmed' },
-  ];
+  const formatEventDisplay = (event: typeof events[number]) => {
+    const typeMap: Record<string, string> = {
+      InvoiceCreated: 'Invoice Created',
+      create: 'Invoice Created',
+      InvoiceListed: 'Invoice Listed',
+      list_for_financing: 'Invoice Listed',
+      InvoiceFunded: 'Invoice Funded',
+      fund_invoice: 'Invoice Funded',
+      InvoiceShipped: 'Invoice Shipped',
+      mark_shipped: 'Invoice Shipped',
+      DeliveryConfirmed: 'Delivery Confirmed',
+      confirm_delivery: 'Delivery Confirmed',
+      InvoiceRepaid: 'Invoice Repaid',
+      repay: 'Invoice Repaid',
+      InvoiceDefaulted: 'Invoice Defaulted',
+      trigger_default: 'Invoice Defaulted',
+    };
+    const type = typeMap[event.event_type] || event.event_type;
+    const invId: string = event.data?.invoice_id || '';
+    const invShort = invId ? `INV#${invId.slice(0, 4)}...` : '';
+    let details = '';
+    switch (event.event_type) {
+      case 'InvoiceCreated':
+      case 'create':
+        details = `${invShort} created for buyer ${event.data?.buyer ? `${event.data.buyer.slice(0, 4)}...` : 'unknown'}`;
+        break;
+      case 'InvoiceListed':
+      case 'list_for_financing':
+        details = `${invShort} listed for financing`;
+        break;
+      case 'InvoiceFunded':
+      case 'fund_invoice':
+        details = `${invShort} funded`;
+        break;
+      case 'InvoiceShipped':
+      case 'mark_shipped':
+        details = `${invShort} marked as shipped`;
+        break;
+      case 'DeliveryConfirmed':
+      case 'confirm_delivery':
+        details = `Buyer confirmed delivery for ${invShort}`;
+        break;
+      case 'InvoiceRepaid':
+      case 'repay':
+        details = `${invShort} repaid`;
+        break;
+      case 'InvoiceDefaulted':
+      case 'trigger_default':
+        details = `${invShort} defaulted`;
+        break;
+      default:
+        details = invShort || 'Event occurred';
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const diff = now - event.ledger_closed_at;
+    let time = '';
+    if (diff < 60) time = 'just now';
+    else if (diff < 3600) time = `${Math.floor(diff / 60)} min ago`;
+    else if (diff < 86400) time = `${Math.floor(diff / 3600)}h ago`;
+    else time = `${Math.floor(diff / 86400)}d ago`;
+    return { id: event.id, type, details, time };
+  };
 
   if (!connected) {
     return (
@@ -130,7 +187,7 @@ export default function SMEDashboard() {
             )}
 
             {/* Recent activity timeline */}
-            {isLoading ? (
+            {eventsLoading ? (
               <ActivityTimelineSkeleton />
             ) : (
             <div className="bg-card border border-border rounded-lg p-5 space-y-4">
@@ -138,15 +195,21 @@ export default function SMEDashboard() {
                 On-Chain Activity Logs
               </h3>
               <div className="space-y-3 font-mono text-xs">
-                {recentEvents.map((event) => (
-                  <div key={event.id} className="flex justify-between items-start gap-4 p-2 border-b border-border/20 last:border-0">
-                    <div className="space-y-1">
-                      <span className="text-primary font-bold">{event.type}</span>
-                      <p className="text-[10px] text-slate-400">{event.details}</p>
+                {events.length === 0 && (
+                  <p className="text-slate-500 text-[10px] py-4 text-center">No events recorded yet.</p>
+                )}
+                {events.map((event) => {
+                  const display = formatEventDisplay(event);
+                  return (
+                    <div key={event.id} className="flex justify-between items-start gap-4 p-2 border-b border-border/20 last:border-0">
+                      <div className="space-y-1">
+                        <span className="text-primary font-bold">{display.type}</span>
+                        <p className="text-[10px] text-slate-400">{display.details}</p>
+                      </div>
+                      <span className="text-[9px] text-slate-500 text-right">{display.time}</span>
                     </div>
-                    <span className="text-[9px] text-slate-500 text-right">{event.time}</span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
             )}
