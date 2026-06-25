@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useWalletStore } from '@/store/wallet';
 import { useProfile } from '@/hooks/useProfile';
 import { motion } from 'framer-motion';
-import { Calendar, ShieldAlert, Copy, Check, Truck, Landmark, Wallet, CheckSquare, Clock } from 'lucide-react';
+import { Calendar, ShieldAlert, Copy, Check, Truck, Landmark, Wallet, CheckSquare, Clock, X } from 'lucide-react';
 import { formatAmount } from '@/lib/assets';
 
 interface InvoiceCardProps {
@@ -16,6 +16,12 @@ interface InvoiceCardProps {
   role?: 'issuer' | 'buyer' | 'lp';
   onSelect?: () => void;
   isSelected?: boolean;
+}
+
+interface PendingAction {
+  label: string;
+  fn: () => Promise<any>;
+  errorMsg: string;
 }
 
 export function InvoiceCard({ invoice, role, onSelect, isSelected }: InvoiceCardProps) {
@@ -28,6 +34,7 @@ export function InvoiceCard({ invoice, role, onSelect, isSelected }: InvoiceCard
   const [copiedBuyer, setCopiedBuyer] = useState(false);
   const [discountBpsInput, setDiscountBpsInput] = useState('200'); // default 2%
   const [showListForm, setShowListForm] = useState(false);
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
 
   const truncateAddr = (addr: string) => {
     if (!addr) return '';
@@ -72,6 +79,23 @@ export function InvoiceCard({ invoice, role, onSelect, isSelected }: InvoiceCard
     } finally {
       setLoading(false);
     }
+  };
+
+  // Opens the confirmation dialog instead of firing the on-chain action directly.
+  // The actual call only happens if the user hits Confirm in the dialog.
+  const requestConfirmation = (action: PendingAction) => {
+    setPendingAction(action);
+  };
+
+  const handleConfirm = async () => {
+    if (!pendingAction) return;
+    const action = pendingAction;
+    setPendingAction(null);
+    await handleAction(action.fn, action.errorMsg);
+  };
+
+  const handleCancelConfirmation = () => {
+    setPendingAction(null);
   };
 
   // Due date calculation
@@ -299,7 +323,11 @@ export function InvoiceCard({ invoice, role, onSelect, isSelected }: InvoiceCard
               }`}
               onClick={() => {
                 if (!isVerified) return;
-                handleAction(() => confirmDelivery({ invoiceId: invoice.id }), 'Failed to confirm delivery');
+                requestConfirmation({
+                  label: 'Confirm Delivery',
+                  fn: () => confirmDelivery({ invoiceId: invoice.id }),
+                  errorMsg: 'Failed to confirm delivery',
+                });
               }}
               disabled={loading || !isVerified}
             >
@@ -317,7 +345,11 @@ export function InvoiceCard({ invoice, role, onSelect, isSelected }: InvoiceCard
               }`}
               onClick={() => {
                 if (!isVerified) return;
-                handleAction(() => repayInvoice({ invoiceId: invoice.id }), 'Failed to repay invoice');
+                requestConfirmation({
+                  label: 'Repay Invoice',
+                  fn: () => repayInvoice({ invoiceId: invoice.id }),
+                  errorMsg: 'Failed to repay invoice',
+                });
               }}
               disabled={loading || !isVerified}
             >
@@ -335,7 +367,11 @@ export function InvoiceCard({ invoice, role, onSelect, isSelected }: InvoiceCard
               }`}
               onClick={() => {
                 if (!isVerified) return;
-                handleAction(() => defaultInvoice({ invoiceId: invoice.id }), 'Failed to trigger default');
+                requestConfirmation({
+                  label: 'Trigger Default',
+                  fn: () => defaultInvoice({ invoiceId: invoice.id }),
+                  errorMsg: 'Failed to trigger default',
+                });
               }}
               disabled={loading || !isVerified}
             >
@@ -343,6 +379,71 @@ export function InvoiceCard({ invoice, role, onSelect, isSelected }: InvoiceCard
               {loading ? 'TRIGGERING DEFAULT...' : 'TRIGGER DEFAULT'}
             </Button>
           )}
+        </div>
+      )}
+
+      {/* Confirmation dialog for irreversible on-chain actions.
+          Rendered once per card; only visible when pendingAction is set. */}
+      {pendingAction && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={(e) => {
+            e.stopPropagation();
+            handleCancelConfirmation();
+          }}
+        >
+          <div
+            className="w-full max-w-sm bg-[#0d131a] border border-border rounded-lg p-5 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-start mb-4">
+              <h4 className="text-sm font-bold font-mono text-white uppercase tracking-wider">
+                Confirm {pendingAction.label}
+              </h4>
+              <button
+                onClick={handleCancelConfirmation}
+                className="text-slate-500 hover:text-slate-300 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 mb-5 text-xs font-mono">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Action:</span>
+                <span className="text-slate-200">{pendingAction.label}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Invoice ID:</span>
+                <span className="text-slate-200" title={invoice.id}>{truncateAddr(invoice.id)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Estimated Fee:</span>
+                <span className="text-slate-200">Network fee applies</span>
+              </div>
+            </div>
+
+            <p className="text-[10px] text-amber-500/90 font-mono mb-4 leading-normal">
+              This action is irreversible once submitted on-chain. Review carefully before confirming.
+            </p>
+
+            <div className="flex gap-2">
+              <Button
+                className="flex-1 border border-border bg-transparent hover:bg-slate-900 text-slate-300 text-[10px] font-bold uppercase py-2"
+                onClick={handleCancelConfirmation}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold uppercase py-2"
+                onClick={handleConfirm}
+                disabled={loading}
+              >
+                {loading ? 'PROCESSING...' : 'CONFIRM'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </motion.div>
