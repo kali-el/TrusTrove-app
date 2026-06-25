@@ -1,18 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
 import Link from 'next/link';
 import { TopStatusBar } from '@/components/shared/TopStatusBar';
 import { Navbar } from '@/components/shared/Navbar';
 import { InvoiceFeed } from '@/components/shared/InvoiceFeed';
+import { LpYieldCalculator } from '@/components/shared/LpYieldCalculator';
 import { DiscountCalculator } from '@/components/shared/DiscountCalculator';
-import { useWalletStore } from '@/store/wallet';
-import { useWallet } from '@/hooks/useWallet';
 import { 
   ShieldCheck, 
   FileCheck2, 
   Layers, 
-  ArrowRight, 
   Coins, 
   Database,
   ArrowRightLeft,
@@ -20,16 +17,6 @@ import {
 } from 'lucide-react';
 
 export default function Home() {
-  const { connected } = useWalletStore();
-  const { connectWallet } = useWallet();
-
-  // Quick Action Panel State
-  const [quickAmount, setQuickAmount] = useState('25000');
-  const [quickDays, setQuickDays] = useState('60');
-  
-  const parsedQuickAmt = parseFloat(quickAmount) || 0;
-  const quickDiscountFee = parsedQuickAmt * 0.02; // Fixed 2% for quick action
-  const quickPayout = parsedQuickAmt - quickDiscountFee;
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary selection:text-black">
@@ -107,76 +94,9 @@ export default function Home() {
             </div>
           </div>
 
-          {/* RIGHT: Quick-Action Calculator Panel */}
-          <div className="lg:col-span-4 bg-[#0d131a] border border-border rounded-lg p-5 space-y-4 shadow-[0_0_30px_rgba(0,212,170,0.02)]">
-            <h3 className="text-xs font-bold font-mono text-white uppercase tracking-wider border-b border-border/40 pb-2 flex items-center justify-between">
-              <span>FINANCE YOUR INVOICE</span>
-              <span className="text-primary text-[10px]">2% DISC</span>
-            </h3>
-
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold font-mono text-slate-500 uppercase">
-                  Invoice Face Value (USDC)
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={quickAmount}
-                    onChange={(e) => setQuickAmount(e.target.value)}
-                    className="w-full bg-[#080c10] border border-border rounded px-3 py-2 text-white font-mono text-xs focus:outline-none focus:border-primary"
-                    placeholder="25,000"
-                  />
-                  <span className="absolute right-3 top-2 text-[10px] font-mono text-slate-500">USDC</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-bold font-mono text-slate-500 uppercase">
-                  Maturity Term
-                </label>
-                <select
-                  value={quickDays}
-                  onChange={(e) => setQuickDays(e.target.value)}
-                  className="w-full bg-[#080c10] border border-border rounded px-3 py-2 text-slate-300 font-mono text-xs focus:outline-none focus:border-primary"
-                >
-                  <option value="30">30 Days</option>
-                  <option value="60">60 Days</option>
-                  <option value="90">90 Days</option>
-                </select>
-              </div>
-
-              {/* Real-time preview */}
-              <div className="bg-[#080c10] border border-border/60 rounded p-3 text-xs font-mono space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Financing Fee (2.0%):</span>
-                  <span className="text-rose-400">-{quickDiscountFee.toLocaleString()} USDC</span>
-                </div>
-                <div className="flex justify-between border-t border-border/25 pt-2 font-bold text-emerald-400">
-                  <span>Receive Today:</span>
-                  <span>{quickPayout.toLocaleString()} USDC</span>
-                </div>
-              </div>
-
-              {/* Call to Action */}
-              {connected ? (
-                <Link
-                  href="/dashboard"
-                  className="w-full bg-primary hover:bg-primary-hover text-black font-bold uppercase tracking-wider text-xs rounded py-2.5 flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(0,212,170,0.15)] transition-all"
-                >
-                  <span>SUBMIT INVOICE DIRECTLY</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              ) : (
-                <button
-                  onClick={connectWallet}
-                  className="w-full bg-primary hover:bg-primary-hover text-black font-bold uppercase tracking-wider text-xs rounded py-2.5 flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(0,212,170,0.15)] transition-all"
-                >
-                  <Coins className="w-3.5 h-3.5" />
-                  <span>CONNECT FREIGHTER TO START</span>
-                </button>
-              )}
-            </div>
+          {/* RIGHT: LP Yield Calculator */}
+          <div className="lg:col-span-4">
+            <LpYieldCalculator />
           </div>
         </div>
 
