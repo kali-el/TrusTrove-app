@@ -200,10 +200,10 @@ func TestHandlePostAuth_ExpiredChallenge(t *testing.T) {
 		IncrementSequenceNum: false,
 		BaseFee:              txnbuild.MinBaseFee,
 		Preconditions: txnbuild.Preconditions{
-			TimeBounds: txnbuild.TimeBounds{
-				MinTime: time.Now().Add(-2 * time.Hour).Unix(),
-				MaxTime: time.Now().Add(-1 * time.Hour).Unix(), // expired
-			},
+			TimeBounds: txnbuild.NewTimebounds(
+				time.Now().Add(-2*time.Hour).Unix(),
+				time.Now().Add(-1*time.Hour).Unix(), // expired
+			),
 		},
 		Operations: []txnbuild.Operation{
 			&txnbuild.ManageData{

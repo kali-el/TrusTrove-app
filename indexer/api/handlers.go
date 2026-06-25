@@ -217,10 +217,7 @@ func ReadContract(
 		IncrementSequenceNum: false,
 		BaseFee:              txnbuild.MinBaseFee,
 		Preconditions: txnbuild.Preconditions{
-			TimeBounds: txnbuild.TimeBounds{
-				MinTime: 0,
-				MaxTime: time.Now().Add(1 * time.Hour).Unix(),
-			},
+			TimeBounds: txnbuild.NewTimebounds(0, time.Now().Add(1*time.Hour).Unix()),
 		},
 		Operations: []txnbuild.Operation{op},
 	})
@@ -281,10 +278,7 @@ func GenerateChallenge(serverKP *keypair.Full, clientAddr string, passphrase str
 		IncrementSequenceNum: false,
 		BaseFee:              txnbuild.MinBaseFee,
 		Preconditions: txnbuild.Preconditions{
-			TimeBounds: txnbuild.TimeBounds{
-				MinTime: time.Now().Unix(),
-				MaxTime: time.Now().Add(15 * time.Minute).Unix(),
-			},
+			TimeBounds: txnbuild.NewTimebounds(time.Now().Unix(), time.Now().Add(15*time.Minute).Unix()),
 		},
 		Operations: []txnbuild.Operation{
 			&txnbuild.ManageData{
@@ -526,10 +520,7 @@ func (h *APIHandler) HandleCreateInvoice(w http.ResponseWriter, r *http.Request)
 		IncrementSequenceNum: true,
 		BaseFee:              txnbuild.MinBaseFee,
 		Preconditions: txnbuild.Preconditions{
-			TimeBounds: txnbuild.TimeBounds{
-				MinTime: 0,
-				MaxTime: time.Now().Add(1 * time.Hour).Unix(),
-			},
+			TimeBounds: txnbuild.NewTimebounds(0, time.Now().Add(1*time.Hour).Unix()),
 		},
 		Operations: []txnbuild.Operation{op},
 	})
