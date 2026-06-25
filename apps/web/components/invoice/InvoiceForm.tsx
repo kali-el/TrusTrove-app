@@ -281,7 +281,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
               EDIT
             </Button>
             <Button
-              className="flex-1 bg-primary hover:bg-primary-hover text-black font-bold uppercase py-2 min-h-[44px] flex items-center justify-center gap-1.5 shadow-[0_0_15px rgba(0,212,170,0.15)]"
+              className="flex-1 bg-primary hover:bg-primary-hover text-black font-bold uppercase py-2 min-h-[44px] flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(0,212,170,0.15)]"
               onClick={handleCreate}
               disabled={isCreating || isListing}
             >
