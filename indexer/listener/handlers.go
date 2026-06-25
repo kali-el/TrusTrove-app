@@ -87,7 +87,7 @@ func getMapValue(val xdr.ScVal, key string) (xdr.ScVal, bool) {
 // SyncPoolStats retrieves latest pool statistics from the contract on-chain and updates the database
 func SyncPoolStats(ctx context.Context, cfg *config.Config, serverKP *keypair.Full) error {
 	slog.Info("Syncing pool stats from chain...")
-	
+
 	// Read stats from pool contract on-chain
 	scValResult, err := api.ReadContract(cfg.SorobanRPCURL, cfg.PoolContractID, "get_stats", []xdr.ScVal{}, serverKP)
 	if err != nil {
@@ -252,7 +252,7 @@ func (l *EventListener) handleInvoiceFunded(ctx context.Context, event SorobanEv
 	}
 
 	slog.Info("Indexed event: InvoiceFunded", "id", invoiceID, "fundedAmount", fundedAmount)
-	
+
 	// Sync pool stats after funding invoice
 	_ = SyncPoolStats(ctx, l.cfg, serverKP)
 	return nil

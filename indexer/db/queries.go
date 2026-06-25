@@ -111,7 +111,7 @@ func InsertInvoice(ctx context.Context, inv *DbInvoice) error {
 
 func GetInvoiceByID(ctx context.Context, id string) (*DbInvoice, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, issuer, buyer, face_value, discount_bps, funded_amount, due_date, status, created_at,
 			funded_at, shipped_at, issuer_confirmed, buyer_confirmed, repaid_at
 		FROM invoices
@@ -134,7 +134,7 @@ func GetInvoiceByID(ctx context.Context, id string) (*DbInvoice, error) {
 
 func GetInvoices(ctx context.Context, status, issuer string) ([]*DbInvoice, error) {
 	query := `
-		SELECT 
+		SELECT
 			id, issuer, buyer, face_value, discount_bps, funded_amount, due_date, status, created_at,
 			funded_at, shipped_at, issuer_confirmed, buyer_confirmed, repaid_at
 		FROM invoices
@@ -165,7 +165,7 @@ func GetInvoices(ctx context.Context, status, issuer string) ([]*DbInvoice, erro
 
 func UpdateInvoiceListed(ctx context.Context, id string, status string, discountBps int) error {
 	query := `
-		UPDATE invoices 
+		UPDATE invoices
 		SET status = $1, discount_bps = $2
 		WHERE id = $3
 	`
@@ -178,7 +178,7 @@ func UpdateInvoiceListed(ctx context.Context, id string, status string, discount
 
 func UpdateInvoiceFunded(ctx context.Context, id string, status string, fundedAmount string, fundedAt int64) error {
 	query := `
-		UPDATE invoices 
+		UPDATE invoices
 		SET status = $1, funded_amount = $2, funded_at = $3
 		WHERE id = $4
 	`
@@ -191,7 +191,7 @@ func UpdateInvoiceFunded(ctx context.Context, id string, status string, fundedAm
 
 func UpdateInvoiceShipped(ctx context.Context, id string, status string, shippedAt int64) error {
 	query := `
-		UPDATE invoices 
+		UPDATE invoices
 		SET status = $1, shipped_at = $2, issuer_confirmed = TRUE
 		WHERE id = $3
 	`
@@ -204,7 +204,7 @@ func UpdateInvoiceShipped(ctx context.Context, id string, status string, shipped
 
 func UpdateInvoiceDeliveryConfirmed(ctx context.Context, id string, status string) error {
 	query := `
-		UPDATE invoices 
+		UPDATE invoices
 		SET status = $1, buyer_confirmed = TRUE
 		WHERE id = $2
 	`
@@ -217,7 +217,7 @@ func UpdateInvoiceDeliveryConfirmed(ctx context.Context, id string, status strin
 
 func UpdateInvoiceRepaid(ctx context.Context, id string, status string, repaidAt int64) error {
 	query := `
-		UPDATE invoices 
+		UPDATE invoices
 		SET status = $1, repaid_at = $2
 		WHERE id = $3
 	`
@@ -230,7 +230,7 @@ func UpdateInvoiceRepaid(ctx context.Context, id string, status string, repaidAt
 
 func UpdateInvoiceStatus(ctx context.Context, id string, status string) error {
 	query := `
-		UPDATE invoices 
+		UPDATE invoices
 		SET status = $1
 		WHERE id = $2
 	`

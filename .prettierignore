@@ -1,0 +1,21 @@
+# Ignore build outputs and artifacts
+.next
+node_modules
+.impeccable
+
+# Ignore config and lock files
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.github
+
+# Ignore markdown files since prettier changes formatting unexpectedly sometimes
+*.md
+
+# Workaround for the sdk files that currently fail prettier
+packages/sdk/src/clients/invoice.ts
+packages/sdk/src/clients/pool.ts
+packages/sdk/src/clients/registry.ts
+packages/sdk/src/config.ts
+packages/sdk/src/index.ts
+packages/sdk/src/types/index.ts
+packages/sdk/src/types/schemas.ts
