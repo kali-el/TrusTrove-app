@@ -64,7 +64,7 @@ export function usePool() {
     onSuccess: (txHash) => {
       queryClient.invalidateQueries({ queryKey: ['poolStats'] });
       queryClient.invalidateQueries({ queryKey: ['lpPosition', address] });
-      showSuccessToast('Deposit Complete', typeof txHash === 'string' ? txHash : undefined);
+      showSuccessToast('Deposit Complete', txHash);
     },
     onError: (error) => {
       showErrorToast('Deposit Failed', error instanceof Error ? error : undefined);
