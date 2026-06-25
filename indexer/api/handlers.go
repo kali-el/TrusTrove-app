@@ -16,6 +16,7 @@ import (
 
 	"trusttrove/indexer/config"
 	"trusttrove/indexer/db"
+	"trusttrove/indexer/xdrutil"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/golang-jwt/jwt/v5"
@@ -251,37 +252,6 @@ func ReadContract(
 	return val, nil
 }
 
-func GetMapVal(val xdr.ScVal, key string) (xdr.ScVal, bool) {
-	if val.Type != xdr.ScValTypeScvMap || val.Map == nil || *val.Map == nil {
-		return xdr.ScVal{}, false
-	}
-	for _, entry := range **val.Map {
-		if entry.Key.Type == xdr.ScValTypeScvSymbol && entry.Key.Sym != nil {
-			if string(*entry.Key.Sym) == key {
-				return entry.Val, true
-			}
-		}
-	}
-	return xdr.ScVal{}, false
-}
-
-func GetU128Val(val xdr.ScVal) (string, bool) {
-	if val.Type != xdr.ScValTypeScvU128 || val.U128 == nil {
-		return "0", false
-	}
-	hi := big.NewInt(int64(val.U128.Hi))
-	lo := big.NewInt(int64(val.U128.Lo))
-	result := new(big.Int).Lsh(hi, 64)
-	result.Or(result, lo)
-	return result.String(), true
-}
-
-func GetU32Val(val xdr.ScVal) (uint32, bool) {
-	if val.Type != xdr.ScValTypeScvU32 || val.U32 == nil {
-		return 0, false
-	}
-	return uint32(*val.U32), true
-}
 
 func ParseInvoiceIDFromResult(resultXDR string) (string, error) {
 	var val xdr.ScVal
@@ -863,18 +833,17 @@ func (h *APIHandler) HandleGetLPPosition(w http.ResponseWriter, r *http.Request)
 	yieldEarned := "0"
 	depositCount := 0
 
-	if val, ok := GetMapVal(scValResult, "shares"); ok {
-		shares, _ = GetU128Val(val)
+	if val, ok := xdrutil.GetMapVal(scValResult, "shares"); ok {
+		shares = xdrutil.ParseU128(val)
 	}
-	if val, ok := GetMapVal(scValResult, "usdc_value"); ok {
-		usdcValue, _ = GetU128Val(val)
+	if val, ok := xdrutil.GetMapVal(scValResult, "usdc_value"); ok {
+		usdcValue = xdrutil.ParseU128(val)
 	}
-	if val, ok := GetMapVal(scValResult, "yield_earned"); ok {
-		yieldEarned, _ = GetU128Val(val)
+	if val, ok := xdrutil.GetMapVal(scValResult, "yield_earned"); ok {
+		yieldEarned = xdrutil.ParseU128(val)
 	}
-	if val, ok := GetMapVal(scValResult, "deposit_count"); ok {
-		depVal, _ := GetU32Val(val)
-		depositCount = int(depVal)
+	if val, ok := xdrutil.GetMapVal(scValResult, "deposit_count"); ok {
+		depositCount = int(xdrutil.ParseU32(val))
 	}
 
 	w.Header().Set("Content-Type", "application/json")
