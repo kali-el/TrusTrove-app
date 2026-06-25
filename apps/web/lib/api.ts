@@ -1,5 +1,5 @@
 import { useWalletStore } from '@/store/wallet';
-import { AssetType, Invoice, PoolStats, LPPosition, EventLog } from '@/types';
+import { AssetType, Invoice, PoolStats, LPPosition, EventLog, PoolSnapshot } from '@/types';
 
 const getApiUrl = () => {
   return process.env.NEXT_PUBLIC_INDEXER_API_URL || 'http://localhost:8080';
@@ -166,4 +166,8 @@ function parseRawEventLog(raw: any): EventLog {
     event_type: raw.event_type,
     data: raw.data || {},
   };
+}
+
+export async function getPoolSnapshots(): Promise<PoolSnapshot[]> {
+  return apiFetch<PoolSnapshot[]>('/pool/snapshots');
 }
