@@ -3,8 +3,10 @@ package db
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -32,20 +34,34 @@ func InitDB(ctx context.Context, databaseURL string) error {
 }
 
 func RunMigration(ctx context.Context) error {
-	migrationPath := filepath.Join("db", "migrations", "001_initial.sql")
-	migrationBytes, err := os.ReadFile(migrationPath)
-	if err != nil {
-		// Fallback for execution from the monorepo root
-		migrationPath = filepath.Join("indexer", "db", "migrations", "001_initial.sql")
-		migrationBytes, err = os.ReadFile(migrationPath)
-		if err != nil {
-			return fmt.Errorf("failed to read migration file: %w", err)
-		}
+	var migrationDir string
+	migrationDir = filepath.Join("db", "migrations")
+	if _, err := os.Stat(migrationDir); os.IsNotExist(err) {
+		migrationDir = filepath.Join("indexer", "db", "migrations")
 	}
 
-	_, err = Pool.Exec(ctx, string(migrationBytes))
+	entries, err := os.ReadDir(migrationDir)
 	if err != nil {
-		return fmt.Errorf("failed to execute migration script: %w", err)
+		return fmt.Errorf("failed to read migration directory: %w", err)
+	}
+
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].Name() < entries[j].Name()
+	})
+
+	for _, entry := range entries {
+		if filepath.Ext(entry.Name()) != ".sql" {
+			continue
+		}
+		migrationBytes, err := os.ReadFile(filepath.Join(migrationDir, entry.Name()))
+		if err != nil {
+			return fmt.Errorf("failed to read migration file %s: %w", entry.Name(), err)
+		}
+		_, err = Pool.Exec(ctx, string(migrationBytes))
+		if err != nil {
+			return fmt.Errorf("failed to execute migration %s: %w", entry.Name(), err)
+		}
+		slog.Info("Applied migration", "file", entry.Name())
 	}
 
 	return nil
