@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import { TransactionPending } from '@/components/shared/TransactionPending';
 import { AmountInput } from '@/components/shared/AmountInput';
 import { Coins, Unlock, Landmark, Wallet, ShieldAlert, Activity } from 'lucide-react';
-import { motion } from 'framer-motion';
 import type { AssetType } from '@/types';
 import { ASSET_OPTIONS, formatAmount } from '@/lib/assets';
 import { PoolClient } from '@trusttrove/sdk';
@@ -283,7 +282,7 @@ export default function LPDashboard() {
                     className="stroke-[#080c10] fill-transparent"
                     strokeWidth="8"
                   />
-                  <motion.circle
+                  <circle
                     cx="72"
                     cy="72"
                     r="58"
@@ -291,10 +290,9 @@ export default function LPDashboard() {
                     stroke={gaugeColor}
                     strokeWidth="8"
                     strokeDasharray={2 * Math.PI * 58}
-                    initial={{ strokeDashoffset: 2 * Math.PI * 58 }}
-                    animate={{ strokeDashoffset: 2 * Math.PI * 58 * (1 - utilizationRate / 100) }}
-                    transition={{ duration: 1.2, ease: 'easeOut' }}
+                    strokeDashoffset={2 * Math.PI * 58 * (1 - utilizationRate / 100)}
                     strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1.2s ease-out' }}
                   />
                 </svg>
                 <div className="absolute flex flex-col items-center justify-center text-center font-mono">
@@ -378,14 +376,15 @@ export default function LPDashboard() {
                       />
                       
                       {/* Line path */}
-                      <motion.path
+                      <path
                         d={chartLines.lineD}
                         fill="transparent"
                         stroke="#00d4aa"
                         strokeWidth="2"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.5, ease: 'easeInOut' }}
+                        pathLength={1}
+                        strokeDasharray={1}
+                        strokeDashoffset={1}
+                        className="animate-draw-line"
                       />
                     </svg>
 

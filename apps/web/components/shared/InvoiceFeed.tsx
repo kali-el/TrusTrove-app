@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowDownLeft, Zap } from 'lucide-react';
 
 interface FeedItem {
@@ -55,15 +54,11 @@ export function InvoiceFeed() {
       </div>
 
       <div className="flex-1 p-4 relative overflow-hidden flex flex-col gap-3 justify-start">
-        <AnimatePresence initial={false}>
-          {items.map((item) => (
-            <motion.div
+          {items.map((item, idx) => (
+            <div
               key={item.id}
-              initial={{ opacity: 0, y: -40, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 40, scale: 0.95, position: 'absolute', bottom: 16, left: 16, right: 16 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-              className="bg-[#080c10] border border-border/40 p-3 rounded flex items-center justify-between gap-4 w-full"
+              className="bg-[#080c10] border border-border/40 p-3 rounded flex items-center justify-between gap-4 w-full animate-slide-in-down"
+              style={{ animationFillMode: 'backwards', animationDelay: `${idx * 50}ms` }}
             >
               <div className="flex items-center gap-2">
                 <div className="text-lg shrink-0 select-none">{item.flag}</div>
@@ -79,9 +74,8 @@ export function InvoiceFeed() {
                   <ArrowDownLeft className="w-2.5 h-2.5" /> {item.discount} disc.
                 </span>
               </div>
-            </motion.div>
+            </div>
           ))}
-        </AnimatePresence>
       </div>
     </div>
   );

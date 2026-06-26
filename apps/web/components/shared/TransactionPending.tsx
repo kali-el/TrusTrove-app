@@ -1,7 +1,6 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Loader2, ExternalLink, ShieldCheck } from 'lucide-react';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -38,23 +37,12 @@ export function TransactionPending({ isOpen, txHash, statusText = 'Waiting for c
           <div className="absolute w-24 h-24 rounded-full border border-border/30 border-dashed" />
           
           {/* Orbiting Moon */}
-          <motion.div
-            className="absolute w-3 h-3 rounded-full bg-primary"
-            animate={{
-              rotate: 360,
-            }}
-            transition={{
-              repeat: Infinity,
-              duration: 4,
-              ease: 'linear',
-            }}
-            style={{
-              originX: '50%',
-              originY: '50%',
-              width: '96px', // spans outer bounds
-              height: '12px',
-            }}
-          />
+          <div
+            className="absolute w-24 h-3 animate-spin-slow"
+            style={{ transformOrigin: '48px 6px' }}
+          >
+            <div className="w-3 h-3 rounded-full bg-primary" />
+          </div>
         </div>
 
         <h3 className="text-md font-bold font-mono tracking-wider text-white uppercase mb-2">

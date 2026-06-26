@@ -14,7 +14,6 @@ import { WalletConnect } from '@/components/shared/WalletConnect';
 import { InvoiceTableSkeleton, ActivityTimelineSkeleton } from '@/components/shared/SkeletonLoader';
 import { Layers, Plus, ShieldAlert } from 'lucide-react';
 import { Invoice } from '@/types';
-import { motion, AnimatePresence } from 'framer-motion';
 import { formatAmount } from '@/lib/assets';
 import { useFocusTrap } from '@/hooks/useFocusTrap';
 
@@ -259,40 +258,32 @@ export default function SMEDashboard() {
           <div className="lg:col-span-4 space-y-6">
             <h2 className="text-sm font-bold font-mono tracking-wider uppercase text-white">Management console</h2>
 
-            <AnimatePresence mode="wait">
-              {selectedInvoice ? (
-                <motion.div
-                  key={selectedInvoice.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="space-y-4"
-                >
-                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-bold font-mono text-slate-500 uppercase">Selected invoice details</span>
-                    <button 
-                      onClick={() => setSelectedInvoice(null)}
-                      className="text-[10px] font-mono text-primary hover:underline uppercase font-bold"
-                    >
-                      Clear console
-                    </button>
-                  </div>
-                  <InvoiceCard invoice={selectedInvoice} role={role} isSelected />
-                  
-                  {/* Additional invoice details */}
-                  <Link
-                    href={`/invoice/${selectedInvoice.id}`}
-                    className="w-full bg-[#0d131a] border border-border hover:border-primary/50 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider py-2 rounded text-center block font-mono"
+            {selectedInvoice ? (
+              <div key={selectedInvoice.id} className="space-y-4 animate-slide-in-right">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold font-mono text-slate-500 uppercase">Selected invoice details</span>
+                  <button 
+                    onClick={() => setSelectedInvoice(null)}
+                    className="text-[10px] font-mono text-primary hover:underline uppercase font-bold"
                   >
-                    View audit ledger
-                  </Link>
-                </motion.div>
-              ) : (
-                <div className="bg-card/45 border border-dashed border-border rounded-lg p-6 text-center text-slate-500 font-mono text-[10px] py-20 uppercase tracking-wider">
-                  Select an obligation from the table to load actions in the operator console.
+                    Clear console
+                  </button>
                 </div>
-              )}
-            </AnimatePresence>
+                <InvoiceCard invoice={selectedInvoice} role={role} isSelected />
+                
+                {/* Additional invoice details */}
+                <Link
+                  href={`/invoice/${selectedInvoice.id}`}
+                  className="w-full bg-[#0d131a] border border-border hover:border-primary/50 text-slate-300 hover:text-white font-bold text-xs uppercase tracking-wider py-2 rounded text-center block font-mono"
+                >
+                  View audit ledger
+                </Link>
+              </div>
+            ) : (
+              <div className="bg-card/45 border border-dashed border-border rounded-lg p-6 text-center text-slate-500 font-mono text-[10px] py-20 uppercase tracking-wider">
+                Select an obligation from the table to load actions in the operator console.
+              </div>
+            )}
           </div>
         </div>
       </div>
