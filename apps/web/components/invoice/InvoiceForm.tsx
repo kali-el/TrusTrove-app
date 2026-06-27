@@ -37,6 +37,14 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [simError, setSimError] = useState<string | null>(null);
   const [isSimulating, setIsSimulating] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
+  const [simulationDiscountBps, setSimulationDiscountBps] = useState(discountBps);
+
+  // Debounce discount changes so simulation only runs after slider settles on step 2
+  useEffect(() => {
+    if (step !== 2) return;
+    const timer = setTimeout(() => setSimulationDiscountBps(discountBps), 500);
+    return () => clearTimeout(timer);
+  }, [step, discountBps]);
 
   useEffect(() => {
     if (step !== 2 || !address) return;
@@ -68,7 +76,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
 
         const args = [
           xdr.ScVal.scvBytes(Buffer.from(invoiceIdToSimulate, 'hex')),
-          nativeToScVal(discountBps, { type: 'u32' }),
+          nativeToScVal(simulationDiscountBps, { type: 'u32' }),
         ];
 
         const simResult = await invoiceClient.simulateTransaction('list_for_financing', args, address);
@@ -107,7 +115,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       active = false;
       clearTimeout(timerId);
     };
-  }, [step, address, discountBps]);
+  }, [step, address, simulationDiscountBps]);
 
   const parsedValue = parseFloat(faceValue.replace(/,/g, '')) || 0;
   
