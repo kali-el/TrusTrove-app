@@ -12,7 +12,7 @@ import { useWalletStore } from '@/store/wallet';
 import { useProfile } from '@/hooks/useProfile';
 import { WalletConnect } from '@/components/shared/WalletConnect';
 import { InvoiceTableSkeleton, ActivityTimelineSkeleton } from '@/components/shared/SkeletonLoader';
-import { Layers, Plus, ShieldAlert } from 'lucide-react';
+import { Layers, Plus, ShieldAlert, CheckCircle2, Circle, Lock } from 'lucide-react';
 import { Invoice } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
 import { formatAmount } from '@/lib/assets';
@@ -140,23 +140,65 @@ export default function SMEDashboard() {
                 ? 'bg-primary hover:bg-primary-hover text-black shadow-[0_0_15px_rgba(0,212,170,0.1)]'
                 : 'bg-neutral-800 text-slate-500 border border-neutral-700 cursor-not-allowed opacity-60'
             }`}
-            title={!isVerified ? 'Verification required to create invoices' : undefined}
+            title={!isVerified ? 'Please complete your profile registration to unlock invoice creation' : undefined}
           >
             <Plus className="w-4 h-4" />
             <span>Create Invoice</span>
           </button>
         </div>
 
-        {/* Warning Banner for Unverified Profiles */}
+        {/* Onboarding checklist — shown only while the user is unverified */}
         {!isVerified && (
-          <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 flex items-start gap-3 font-mono text-xs text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.02)]">
-            <ShieldAlert className="w-5 h-5 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <span className="font-bold uppercase">Profile Verification Required</span>
-              <p className="text-slate-400 leading-relaxed text-[11px]">
-                Your connected wallet address is not verified on-chain. Go to the <Link href="/profile" className="text-primary hover:underline font-bold">[Profile Page]</Link> to register your business credentials and unlock dashboard operations.
-              </p>
+          <div className="bg-card border border-border rounded-lg p-5 space-y-4 shadow-[0_0_25px_rgba(0,212,170,0.03)]">
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-full border border-primary/30 bg-primary/10 flex items-center justify-center shrink-0">
+                <span className="text-primary text-xs font-bold font-mono">!</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold font-mono tracking-wider text-white uppercase">Get Started</h3>
+                <p className="text-[10px] text-slate-500 font-mono leading-relaxed">
+                  Complete the steps below to unlock full dashboard operations.
+                </p>
+              </div>
             </div>
+
+            {/* Step 1: Connect Wallet — always completed by this point */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+              <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold font-mono text-white">Connect Wallet</span>
+                <p className="text-[10px] text-slate-500 truncate">Wallet connected successfully</p>
+              </div>
+              <span className="text-[9px] font-bold font-mono text-primary uppercase shrink-0">Done</span>
+            </div>
+
+            {/* Step 2: Register Profile — pending action */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5">
+              <Circle className="w-5 h-5 text-amber-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold font-mono text-amber-400">Register Profile</span>
+                <p className="text-[10px] text-slate-500 truncate">Register your business credentials on-chain</p>
+              </div>
+              <span className="text-[9px] font-bold font-mono text-amber-400 uppercase shrink-0">Pending</span>
+            </div>
+
+            {/* Step 3: Create Invoice — locked behind verification */}
+            <div className="flex items-center gap-3 p-3 rounded-lg border border-border/40 bg-card">
+              <Lock className="w-5 h-5 text-slate-600 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <span className="text-xs font-bold font-mono text-slate-400">Create Invoice</span>
+                <p className="text-[10px] text-slate-500 truncate">Requires verified profile</p>
+              </div>
+              <span className="text-[9px] font-bold font-mono text-slate-600 uppercase shrink-0">Locked</span>
+            </div>
+
+            {/* CTA to profile registration page */}
+            <Link
+              href="/profile"
+              className="w-full mt-2 bg-primary hover:bg-primary-hover text-black font-bold uppercase tracking-wider text-xs rounded px-4 py-2.5 flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(0,212,170,0.1)] transition-all"
+            >
+              <span>Complete Profile Registration</span>
+            </Link>
           </div>
         )}
 
