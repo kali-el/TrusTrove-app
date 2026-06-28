@@ -48,7 +48,22 @@ export function SimulationPreview({ details, error, isLoading, isFallback }: Sim
     );
   }
 
-  if (!details) return null;
+  if (!details) {
+    if (isFallback) {
+      return (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-lg p-4 font-mono text-xs space-y-2">
+          <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-amber-500">
+            <ShieldAlert className="w-4 h-4 shrink-0" />
+            <span>Simulation Unavailable</span>
+          </div>
+          <p className="text-[11px] text-amber-400/70 leading-relaxed">
+            Live simulation data is currently unavailable. The fee shown at signing time may differ from this preview.
+          </p>
+        </div>
+      );
+    }
+    return null;
+  }
 
   return (
     <div className="bg-[#0b1219]/60 backdrop-blur border border-primary/20 rounded-lg p-4 font-mono text-xs space-y-3 shadow-[0_0_15px_rgba(0,212,170,0.02)]">

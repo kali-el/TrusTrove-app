@@ -81,12 +81,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           errMsg.includes('missing')
         ) {
           setIsFallback(true);
-          setSimDetails({
-            estimatedFeeXlm: '0.0051185',
-            functionName: 'list_for_financing',
-            expectedResult: null,
-            footprintSize: 4,
-          });
+          setSimDetails(null);
         } else {
           setSimError(errMsg);
         }
@@ -150,10 +145,17 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
         asset,
       });
 
+      if (!res.invoice_id) {
+        throw new Error('Invoice creation did not return a valid invoice ID');
+      }
+      if (!res.transaction_hash) {
+        throw new Error('Invoice creation did not return a transaction hash');
+      }
+
       const invoiceId = res.invoice_id;
 
       // Transaction 2: Immediate List
-      if (immediateList && invoiceId) {
+      if (immediateList) {
         setIsListing(true);
         // Pre-simulate list_for_financing on the newly created invoice ID before Freighter opens
         try {

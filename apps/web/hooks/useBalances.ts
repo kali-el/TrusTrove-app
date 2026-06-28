@@ -69,10 +69,11 @@ export function useBalances() {
   }, [address, connected]);
 
   useEffect(() => {
+    if (!connected) return;
     fetchBalances();
     const interval = setInterval(fetchBalances, 30000);
     return () => clearInterval(interval);
-  }, [fetchBalances]);
+  }, [connected, fetchBalances]);
 
   return { balances, loading, error, refetch: fetchBalances };
 }

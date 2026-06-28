@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
 import { ConfirmationDialog } from '@/components/shared/ConfirmationDialog';
+import { ConfigBanner } from '@/components/shared/ConfigBanner';
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -20,6 +21,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ConfigBanner />
       {children}
       <ConfirmationDialog />
       <Toaster
