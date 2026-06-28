@@ -30,7 +30,7 @@ async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> 
 }
 
 function parseRawInvoice(raw: any): Invoice {
-  return {
+  const invoice: Invoice = {
     id: raw.id,
     issuer: raw.issuer,
     buyer: raw.buyer,
@@ -47,6 +47,23 @@ function parseRawInvoice(raw: any): Invoice {
     buyerConfirmed: !!raw.buyer_confirmed,
     repaidAt: raw.repaid_at ? Number(raw.repaid_at) : null,
   };
+
+  return Object.assign(invoice, {
+    listedAt: raw.listed_at ? Number(raw.listed_at) : null,
+    issuerConfirmedAt: raw.issuer_confirmed_at ? Number(raw.issuer_confirmed_at) : null,
+    buyerConfirmedAt: raw.buyer_confirmed_at ? Number(raw.buyer_confirmed_at) : null,
+    defaultedAt: raw.defaulted_at ? Number(raw.defaulted_at) : null,
+    transactionHashes: raw.transaction_hashes,
+    txHashes: raw.tx_hashes,
+    createdTxHash: raw.created_tx_hash,
+    listedTxHash: raw.listed_tx_hash,
+    fundedTxHash: raw.funded_tx_hash,
+    shippedTxHash: raw.shipped_tx_hash,
+    issuerConfirmedTxHash: raw.issuer_confirmed_tx_hash,
+    buyerConfirmedTxHash: raw.buyer_confirmed_tx_hash,
+    repaidTxHash: raw.repaid_tx_hash,
+    defaultedTxHash: raw.defaulted_tx_hash,
+  });
 }
 
 function parseRawPoolStats(raw: any): PoolStats {

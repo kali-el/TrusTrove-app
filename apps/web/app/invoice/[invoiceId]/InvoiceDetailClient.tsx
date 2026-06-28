@@ -6,7 +6,7 @@ import { PageLayout } from '@/components/shared/PageLayout';
 import { useInvoice, useInvoices } from '@/hooks/useInvoices';
 import { useWalletStore } from '@/store/wallet';
 import { InvoiceStatus } from '@/components/invoice/InvoiceStatus';
-import { StatusTimeline } from '@/components/invoice/StatusTimeline';
+import { InvoiceStatusTimeline } from '@/components/invoice/InvoiceStatusTimeline';
 import { Button } from '@/components/ui/button';
 import { TransactionPending } from '@/components/shared/TransactionPending';
 import {
@@ -149,14 +149,6 @@ export default function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientPr
   const daysRemaining = Math.ceil(secondsRemaining / (24 * 3600));
   const isOverdue = secondsRemaining < 0;
 
-  const timestamps = {
-    created: invoice.createdAt,
-    funded: invoice.fundedAt || undefined,
-    shipped: invoice.shippedAt || undefined,
-    confirmed: invoice.buyerConfirmed ? (invoice.shippedAt ? invoice.shippedAt + 3600 : invoice.createdAt + 7200) : undefined,
-    repaid: invoice.repaidAt || undefined,
-  };
-
   return (
     <PageLayout>
       <div className="space-y-6 py-4">
@@ -200,7 +192,7 @@ export default function InvoiceDetailClient({ invoiceId }: InvoiceDetailClientPr
             <Activity className="w-3.5 h-3.5 text-primary" />
             Soroban Transaction Progress
           </h3>
-          <StatusTimeline status={invoice.status} timestamps={timestamps} />
+          <InvoiceStatusTimeline invoice={invoice} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
