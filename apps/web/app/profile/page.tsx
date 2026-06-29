@@ -5,6 +5,7 @@ import { PageLayout } from "@/components/shared/PageLayout";
 import { useWalletStore } from "@/store/wallet";
 import { useProfile } from "@/hooks/useProfile";
 import { WalletConnect } from "@/components/shared/WalletConnect";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import { TransactionPending } from "@/components/shared/TransactionPending";
 import { Button } from "@/components/ui/button";
 import {
@@ -139,6 +140,7 @@ export default function ProfilePage() {
           </p>
         </div>
 
+        <ErrorBoundary context="ProfileContent">
         {isLoading ? (
           <div className="bg-[#0d131a] border border-border rounded-lg p-12 flex flex-col items-center justify-center space-y-4 font-mono text-xs">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
@@ -323,10 +325,12 @@ export default function ProfilePage() {
             </div>
           </div>
         )}
+        </ErrorBoundary>
       </div>
 
       {/* Registration Modal Dialog */}
       {showRegModal && (
+        <ErrorBoundary context="RegistrationModal">
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#080c10]/95 backdrop-blur-sm p-4">
           <div className="w-full max-w-lg bg-card border border-border rounded-lg p-6 relative shadow-[0_0_50px_rgba(0,212,170,0.05)]">
             <button
@@ -513,6 +517,7 @@ export default function ProfilePage() {
             </form>
           </div>
         </div>
+        </ErrorBoundary>
       )}
 
       {/* Transaction Pending Dialog Modal */}

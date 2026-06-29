@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { Horizon } from "@stellar/stellar-sdk";
 import { useWalletStore } from "@/store/wallet";
 import { ASSET_INFO } from "@/lib/assets";
+import { createErrorHandler } from "@/lib/errors";
+
+const { captureError } = createErrorHandler("useBalances");
 
 export interface Balances {
   usdc: string | null;
@@ -59,9 +62,11 @@ export function useBalances() {
         if (resp?.status === 404) {
           setBalances({ usdc: null, xlm: "0" });
         } else {
+          captureError(err);
           setError("Failed to fetch balances");
         }
       } else {
+        captureError(err);
         setError("Failed to fetch balances");
       }
     } finally {

@@ -7,7 +7,10 @@ import {
 } from "@/lib/api";
 import { InvoiceClient, PoolClient } from "@trusttrove/sdk";
 import { useWalletStore } from "@/store/wallet";
-import { showSuccessToast, showErrorToast } from "@/lib/toast";
+import { showSuccessToast } from "@/lib/toast";
+import { createErrorHandler } from "@/lib/errors";
+
+const { handleMutationError } = createErrorHandler("useInvoices");
 
 const invoiceContractID = process.env.NEXT_PUBLIC_INVOICE_CONTRACT_ID || "";
 const poolContractID = process.env.NEXT_PUBLIC_POOL_CONTRACT_ID || "";
@@ -86,10 +89,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Created");
     },
     onError: (error) => {
-      showErrorToast(
-        "Invoice Creation Failed",
-        error instanceof Error ? error : undefined,
-      );
+      handleMutationError(error, "Invoice Creation Failed");
     },
   });
 
@@ -110,10 +110,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Listed for Financing");
     },
     onError: (error) => {
-      showErrorToast(
-        "Listing Failed",
-        error instanceof Error ? error : undefined,
-      );
+      handleMutationError(error, "Listing Failed");
     },
   });
 
@@ -130,10 +127,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Funded");
     },
     onError: (error) => {
-      showErrorToast(
-        "Funding Failed",
-        error instanceof Error ? error : undefined,
-      );
+      handleMutationError(error, "Funding Failed");
     },
   });
 
@@ -148,10 +142,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Shipped");
     },
     onError: (error) => {
-      showErrorToast(
-        "Shipping Failed",
-        error instanceof Error ? error : undefined,
-      );
+      handleMutationError(error, "Shipping Failed");
     },
   });
 
@@ -167,10 +158,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Delivery Confirmed");
     },
     onError: (error) => {
-      showErrorToast(
-        "Confirmation Failed",
-        error instanceof Error ? error : undefined,
-      );
+      handleMutationError(error, "Confirmation Failed");
     },
   });
 
@@ -187,10 +175,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Repaid");
     },
     onError: (error) => {
-      showErrorToast(
-        "Repayment Failed",
-        error instanceof Error ? error : undefined,
-      );
+      handleMutationError(error, "Repayment Failed");
     },
   });
 
@@ -207,10 +192,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Defaulted");
     },
     onError: (error) => {
-      showErrorToast(
-        "Default Action Failed",
-        error instanceof Error ? error : undefined,
-      );
+      handleMutationError(error, "Default Action Failed");
     },
   });
 
