@@ -89,6 +89,15 @@ Yield distributes to LP shares
 
 ---
 
+## Configuration and API documentation
+
+- Root [`.env.example`](./.env.example) is the single source of truth for frontend, SDK, and Go indexer variables. It lists each variable's layer, type, required status, default value, description, and source.
+- For Render deployments, set `ALLOWED_ORIGINS` to `https://trustrove.vercel.app,http://localhost:3000` so the indexer accepts requests only from the production Vercel domain and local development origins.
+- Indexer OpenAPI documentation lives at [`docs/openapi/indexer.yaml`](./docs/openapi/indexer.yaml), including health, SEP-10 auth, invoices, events, stats, and pool endpoints.
+- Web app setup instructions live at [`apps/web/README.md`](./apps/web/README.md).
+
+---
+
 ## Quick Start
 
 ### Prerequisites
@@ -113,7 +122,7 @@ pnpm install
 cp .env.example .env.local
 ```
 
-The contract IDs are pre-filled with the deployed testnet addresses. No changes needed to run locally.
+The contract IDs are pre-filled with the deployed testnet addresses. Review `.env.example` for every frontend, SDK, and indexer variable before changing networks.
 
 ### 3. Start PostgreSQL
 

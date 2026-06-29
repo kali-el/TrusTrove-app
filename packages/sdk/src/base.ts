@@ -7,8 +7,73 @@ import {
   xdr,
   scValToNative,
 } from "@stellar/stellar-sdk";
-import { signTransaction } from "@stellar/freighter-api";
+import * as freighterApi from "@stellar/freighter-api";
 import { getConfig, getSorobanServer } from "./config.js";
+
+const signTransactionFn =
+  (
+    freighterApi as unknown as {
+      signTransaction?: (
+        transactionXdr: string,
+        opts?: {
+          network?: string;
+          networkPassphrase?: string;
+          accountToSign?: string;
+        },
+      ) => Promise<string>;
+      default?: {
+        signTransaction?: (
+          transactionXdr: string,
+          opts?: {
+            network?: string;
+            networkPassphrase?: string;
+            accountToSign?: string;
+          },
+        ) => Promise<string>;
+      };
+    }
+  ).signTransaction ||
+  (
+    freighterApi as unknown as {
+      default?: {
+        signTransaction?: (
+          transactionXdr: string,
+          opts?: {
+            network?: string;
+            networkPassphrase?: string;
+            accountToSign?: string;
+          },
+        ) => Promise<string>;
+      };
+    }
+  ).default?.signTransaction;
+
+if (!signTransactionFn) {
+  throw new Error(
+    "The installed @stellar/freighter-api package does not expose signTransaction",
+  );
+}
+
+const signTransactionCompat = signTransactionFn as (
+  transactionXdr: string,
+  opts?: {
+    network?: string;
+    networkPassphrase?: string;
+    accountToSign?: string;
+  },
+) => Promise<string>;
+
+const MAX_TRANSACTION_POLL_ATTEMPTS = 30;
+
+export class TransactionTimeoutError extends Error {
+  readonly txHash: string;
+
+  constructor(txHash: string) {
+    super(`Transaction confirmation timed out for hash: ${txHash}`);
+    this.name = "TransactionTimeoutError";
+    this.txHash = txHash;
+  }
+}
 
 function isNetworkError(err: unknown): boolean {
   if (err instanceof TypeError) return true;
@@ -131,7 +196,7 @@ export class BaseContractClient {
     }
 
     const prepared = await withRetry(() => server.prepareTransaction(tx));
-    const signed = await signTransaction(prepared.toXDR(), {
+    const signed = await signTransactionCompat(prepared.toXDR(), {
       network:
         config.networkPassphrase === Networks.PUBLIC ? "PUBLIC" : "TESTNET",
       networkPassphrase: config.networkPassphrase,
@@ -151,9 +216,18 @@ export class BaseContractClient {
     }
 
     let response = await withRetry(() => server.getTransaction(result.hash));
-    while (response.status === rpc.Api.GetTransactionStatus.NOT_FOUND) {
+    let attempts = 1;
+    while (
+      response.status === rpc.Api.GetTransactionStatus.NOT_FOUND &&
+      attempts < MAX_TRANSACTION_POLL_ATTEMPTS
+    ) {
       await new Promise((r) => setTimeout(r, 1000));
       response = await withRetry(() => server.getTransaction(result.hash));
+      attempts++;
+    }
+
+    if (response.status === rpc.Api.GetTransactionStatus.NOT_FOUND) {
+      throw new TransactionTimeoutError(result.hash);
     }
 
     if (response.status === rpc.Api.GetTransactionStatus.FAILED) {

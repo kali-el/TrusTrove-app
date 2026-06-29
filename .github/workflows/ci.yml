@@ -1,6 +1,7 @@
 name: CI Build & Verify
 
 on:
+  workflow_dispatch:
   push:
     branches: [main]
   pull_request:
@@ -31,6 +32,9 @@ jobs:
       - name: Build Packages (SDK & Web App)
         run: pnpm build
 
+      - name: Run Unit Tests
+        run: pnpm test
+
       - name: Lint Web Application
         run: pnpm --filter web lint
 
@@ -59,6 +63,11 @@ jobs:
         run: |
           cd indexer
           go build -v ./...
+
+      - name: Test Go Services
+        run: |
+          cd indexer
+          go test -v ./...
 
       - name: Lint Go Services
         run: |
