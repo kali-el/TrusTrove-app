@@ -47,9 +47,9 @@ export function useWallet() {
     setError(null);
     try {
       const addr = await connectFreighter();
-      const stellarNetwork =
-        process.env.NEXT_PUBLIC_STELLAR_NETWORK || "TESTNET";
-      // Defaults to testnet passphrase or string as configured
+      const stellarNetwork = (
+        process.env.NEXT_PUBLIC_STELLAR_NETWORK || "testnet"
+      ).toLowerCase();
       connect(addr, stellarNetwork);
     } catch (err: unknown) {
       const message =

@@ -52,10 +52,11 @@ export function useAuth() {
       const { transaction, network_passphrase } = await fetchChallenge(address);
 
       // 2. Sign with Freighter wallet using dynamic network parameters
+      const rawNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK || "TESTNET";
       const stellarNetwork =
-        process.env.NEXT_PUBLIC_STELLAR_NETWORK || "TESTNET";
+        rawNetwork.toUpperCase() === "PUBLIC" ? "PUBLIC" : "TESTNET";
       const signedXdr = await signTransaction(transaction, {
-        network: stellarNetwork as "PUBLIC" | "TESTNET",
+        network: stellarNetwork,
         networkPassphrase:
           process.env.NEXT_PUBLIC_NETWORK_PASSPHRASE || network_passphrase,
         accountToSign: address,
