@@ -50,7 +50,10 @@ export function useAuth() {
       // 1. Fetch challenge XDR; network_passphrase is returned by the server
       const { transaction, network_passphrase } = await fetchChallenge(address);
 
-      // 2. Sign with Freighter wallet using the server-provided passphrase
+      // 2. Sign with Freighter wallet using dynamic network parameters
+      const rawNetwork = process.env.NEXT_PUBLIC_STELLAR_NETWORK || "TESTNET";
+      const stellarNetwork =
+        rawNetwork.toUpperCase() === "PUBLIC" ? "PUBLIC" : "TESTNET";
       const signedXdr = await signTransaction(transaction, {
         network: "TESTNET",
         networkPassphrase: network_passphrase,
