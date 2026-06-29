@@ -112,7 +112,7 @@ func InsertInvoice(ctx context.Context, inv *DbInvoice) error {
 
 func GetInvoiceByID(ctx context.Context, id string) (*DbInvoice, error) {
 	query := `
-		SELECT
+		SELECT 
 			id, issuer, buyer, face_value, discount_bps, funded_amount, due_date, status, created_at,
 			funded_at, shipped_at, issuer_confirmed, buyer_confirmed, repaid_at
 		FROM invoices
@@ -146,7 +146,7 @@ func GetInvoicesPage(ctx context.Context, status, issuer string, limit, offset i
 	}
 
 	query := `
-		SELECT
+		SELECT 
 			id, issuer, buyer, face_value, discount_bps, funded_amount, due_date, status, created_at,
 			funded_at, shipped_at, issuer_confirmed, buyer_confirmed, repaid_at
 		FROM invoices
@@ -178,7 +178,7 @@ func GetInvoicesPage(ctx context.Context, status, issuer string, limit, offset i
 
 func UpdateInvoiceListed(ctx context.Context, id string, status string, discountBps int) error {
 	query := `
-		UPDATE invoices
+		UPDATE invoices 
 		SET status = $1, discount_bps = $2
 		WHERE id = $3
 	`
@@ -191,7 +191,7 @@ func UpdateInvoiceListed(ctx context.Context, id string, status string, discount
 
 func UpdateInvoiceFunded(ctx context.Context, id string, status string, fundedAmount string, fundedAt int64) error {
 	query := `
-		UPDATE invoices
+		UPDATE invoices 
 		SET status = $1, funded_amount = $2, funded_at = $3
 		WHERE id = $4
 	`
@@ -204,7 +204,7 @@ func UpdateInvoiceFunded(ctx context.Context, id string, status string, fundedAm
 
 func UpdateInvoiceShipped(ctx context.Context, id string, status string, shippedAt int64) error {
 	query := `
-		UPDATE invoices
+		UPDATE invoices 
 		SET status = $1, shipped_at = $2, issuer_confirmed = TRUE
 		WHERE id = $3
 	`
@@ -217,7 +217,7 @@ func UpdateInvoiceShipped(ctx context.Context, id string, status string, shipped
 
 func UpdateInvoiceDeliveryConfirmed(ctx context.Context, id string, status string) error {
 	query := `
-		UPDATE invoices
+		UPDATE invoices 
 		SET status = $1, buyer_confirmed = TRUE
 		WHERE id = $2
 	`
@@ -230,7 +230,7 @@ func UpdateInvoiceDeliveryConfirmed(ctx context.Context, id string, status strin
 
 func UpdateInvoiceRepaid(ctx context.Context, id string, status string, repaidAt int64) error {
 	query := `
-		UPDATE invoices
+		UPDATE invoices 
 		SET status = $1, repaid_at = $2
 		WHERE id = $3
 	`
@@ -243,7 +243,7 @@ func UpdateInvoiceRepaid(ctx context.Context, id string, status string, repaidAt
 
 func UpdateInvoiceStatus(ctx context.Context, id string, status string) error {
 	query := `
-		UPDATE invoices
+		UPDATE invoices 
 		SET status = $1
 		WHERE id = $2
 	`
@@ -376,4 +376,27 @@ func GetLatestProcessedLedger(ctx context.Context) (int32, error) {
 		return 0, fmt.Errorf("queries: get latest processed ledger: %w", err)
 	}
 	return ledger, nil
+}
+
+func GetCheckpoint(ctx context.Context) (int32, error) {
+	query := `SELECT value FROM indexer_checkpoint WHERE key = 'latest_processed_ledger'`
+	var ledger int32
+	err := Pool.QueryRow(ctx, query).Scan(&ledger)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, nil
+		}
+		return 0, fmt.Errorf("queries: get checkpoint: %w", err)
+	}
+	return ledger, nil
+}
+
+func UpsertCheckpoint(ctx context.Context, ledger int32) error {
+	query := `INSERT INTO indexer_checkpoint (key, value) VALUES ('latest_processed_ledger', $1)
+	          ON CONFLICT (key) DO UPDATE SET value = $1`
+	_, err := Pool.Exec(ctx, query, ledger)
+	if err != nil {
+		return fmt.Errorf("queries: upsert checkpoint: %w", err)
+	}
+	return nil
 }

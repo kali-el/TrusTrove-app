@@ -25,6 +25,8 @@ type Config struct {
 	IndexerPollIntervalMs int
 	JWTSecret             string
 	JWTExpiryHours        int
+	CORSAllowedOrigins    []string
+	RateLimitRPS          int
 }
 
 func LoadConfig() (*Config, error) {
@@ -67,22 +69,48 @@ func LoadConfig() (*Config, error) {
 		apiPort = "8080"
 	}
 
+	originsStr := strings.TrimSpace(os.Getenv("ALLOWED_ORIGINS"))
+	if originsStr == "" {
+		originsStr = strings.TrimSpace(os.Getenv("CORS_ALLOWED_ORIGINS"))
+	}
+	var corsOrigins []string
+	if originsStr != "" {
+		for _, origin := range strings.Split(originsStr, ",") {
+			origin = strings.TrimSpace(origin)
+			if origin != "" {
+				corsOrigins = append(corsOrigins, origin)
+			}
+		}
+	}
+	if len(corsOrigins) == 0 {
+		corsOrigins = []string{"http://localhost:3000"}
+	}
+
+	rateLimitRPS := 10
+	if rateLimitStr := os.Getenv("RATE_LIMIT_RPS"); rateLimitStr != "" {
+		if val, err := strconv.Atoi(rateLimitStr); err == nil && val > 0 {
+			rateLimitRPS = val
+		}
+	}
+
 	cfg := &Config{
-		StellarNetwork:        getRequired("NEXT_PUBLIC_STELLAR_NETWORK"),
-		HorizonURL:            getRequired("NEXT_PUBLIC_HORIZON_URL"),
-		SorobanRPCURL:         getRequired("NEXT_PUBLIC_SOROBAN_RPC_URL"),
-		NetworkPassphrase:     getRequired("NEXT_PUBLIC_NETWORK_PASSPHRASE"),
-		RegistryContractID:    getRequired("NEXT_PUBLIC_REGISTRY_CONTRACT_ID"),
-		InvoiceContractID:     getRequired("NEXT_PUBLIC_INVOICE_CONTRACT_ID"),
-		PoolContractID:        getRequired("NEXT_PUBLIC_POOL_CONTRACT_ID"),
-		EscrowContractID:      getRequired("NEXT_PUBLIC_ESCROW_CONTRACT_ID"),
-		USDCIssuer:            getRequired("NEXT_PUBLIC_USDC_ISSUER"),
-		USDCAssetCode:         getRequired("NEXT_PUBLIC_USDC_ASSET_CODE"),
+		StellarNetwork:        getRequired("STELLAR_NETWORK"),
+		HorizonURL:            getRequired("HORIZON_URL"),
+		SorobanRPCURL:         getRequired("SOROBAN_RPC_URL"),
+		NetworkPassphrase:     getRequired("NETWORK_PASSPHRASE"),
+		RegistryContractID:    getRequired("REGISTRY_CONTRACT_ID"),
+		InvoiceContractID:     getRequired("INVOICE_CONTRACT_ID"),
+		PoolContractID:        getRequired("POOL_CONTRACT_ID"),
+		EscrowContractID:      getRequired("ESCROW_CONTRACT_ID"),
+		USDCIssuer:            getRequired("USDC_ISSUER"),
+		USDCAssetCode:         getRequired("USDC_ASSET_CODE"),
 		DatabaseURL:           getRequired("DATABASE_URL"),
 		APIPort:               apiPort,
 		IndexerPollIntervalMs: pollIntervalMs,
 		JWTSecret:             getRequired("JWT_SECRET"),
 		JWTExpiryHours:        jwtExpiryHours,
+		CORSAllowedOrigins:    corsOrigins,
+		RateLimitRPS:          rateLimitRPS,
 	}
 
 	if len(missing) > 0 {

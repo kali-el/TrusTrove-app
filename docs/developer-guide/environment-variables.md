@@ -19,6 +19,7 @@
 | `INDEXER_POLL_INTERVAL_MS` | Backend only | Soroban event poll interval | `5000` |
 | `JWT_SECRET` | Backend only | Secret for JWT signing | `your-secret-here` |
 | `JWT_EXPIRY_HOURS` | Backend only | JWT token expiry | `24` |
+| `ALLOWED_ORIGINS` | Backend only | Allowed CORS origins for the indexer API | `https://trustrove.vercel.app,http://localhost:3000` |
 
 ## Source of truth
 

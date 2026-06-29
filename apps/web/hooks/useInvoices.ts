@@ -159,7 +159,8 @@ export function useInvoices(filters?: {
     mutationFn: async ({ invoiceId }: { invoiceId: string }) => {
       if (!address) throw new Error("Wallet not connected");
       const invoiceClient = new InvoiceClient(invoiceContractID);
-      return invoiceClient.confirmDelivery(invoiceId, address, address);
+      const invoice = await getInvoiceByID(invoiceId);
+      return invoiceClient.confirmDelivery(invoiceId, invoice.buyer, address);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["invoices"] });

@@ -3,6 +3,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { Loader2, ExternalLink, ShieldCheck } from "lucide-react";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 
 interface TransactionPendingProps {
   isOpen: boolean;
@@ -17,10 +18,46 @@ export function TransactionPending({
   statusText = "Waiting for confirmation...",
   onClose,
 }: TransactionPendingProps) {
+  // Only allow dismissal (Escape / backdrop click) after the transaction has
+  // completed, i.e. when txHash is available.
+  const canDismiss = Boolean(txHash && onClose);
+
+  const overlayRef = useFocusTrap<HTMLDivElement>(
+    isOpen,
+    canDismiss ? onClose : undefined,
+  );
+
+  // Register a global Escape-key listener that dismisses the dialog only
+  // after the transaction has completed (txHash is set).
+  React.useEffect(() => {
+    if (!canDismiss) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose!();
+    };
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [canDismiss, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#080c10]/95 backdrop-blur-sm p-4">
+    <div
+      ref={overlayRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Transaction Pending"
+      tabIndex={-1}
+      // Backdrop click dismisses the dialog only after the transaction
+      // completes. Clicks that bubble up from children are ignored.
+      onClick={(e) => {
+        if (canDismiss && e.target === e.currentTarget) onClose!();
+      }}
+      // Keyboard handler satisfies jsx-a11y/click-events-have-key-events.
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && canDismiss) onClose!();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[#080c10]/95 backdrop-blur-sm p-4"
+    >
       <div className="w-full max-w-md bg-card border border-border rounded-lg p-6 flex flex-col items-center justify-center text-center shadow-[0_0_50px_rgba(0,212,170,0.05)]">
         {/* Animated Stellar Orbit Logo */}
         <div className="relative w-28 h-28 flex items-center justify-center mb-6">

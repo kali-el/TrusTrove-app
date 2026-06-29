@@ -4,6 +4,11 @@ import { LPPosition, PoolStats } from '../types/index.js';
 import { parsePoolStats, parseLPPosition } from '../types/schemas.js';
 
 export class PoolClient extends BaseContractClient {
+  async initialize(adminAddress: string, signerPublicKey: string): Promise<string> {
+    const args = [new Address(adminAddress).toScVal()];
+    return this.writeContract('initialize', args, signerPublicKey);
+  }
+
   async deposit(
     lp: string,
     usdcAmount: bigint,

@@ -1,7 +1,20 @@
-import { nativeToScVal, scValToNative, xdr } from "@stellar/stellar-sdk";
+import {
+  Address,
+  nativeToScVal,
+  scValToNative,
+  xdr,
+} from "@stellar/stellar-sdk";
 import { BaseContractClient } from "../base.js";
 
 export class EscrowClient extends BaseContractClient {
+  async initialize(
+    adminAddress: string,
+    signerPublicKey: string,
+  ): Promise<string> {
+    const args = [new Address(adminAddress).toScVal()];
+    return this.writeContract("initialize", args, signerPublicKey);
+  }
+
   async lock(
     invoiceIdHex: string,
     amount: bigint,

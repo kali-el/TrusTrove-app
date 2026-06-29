@@ -4,6 +4,11 @@ import { Profile } from '../types/index.js';
 import { parseProfile } from '../types/schemas.js';
 
 export class RegistryClient extends BaseContractClient {
+  async initialize(adminAddress: string, signerPublicKey: string): Promise<string> {
+    const args = [new Address(adminAddress).toScVal()];
+    return this.writeContract('initialize', args, signerPublicKey);
+  }
+
   async registerIssuer(
     address: string,
     metadata: Record<string, string>,

@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { PageLayout } from "@/components/shared/PageLayout";
 import { useInvoice, useInvoices } from "@/hooks/useInvoices";
 import { useWalletStore } from "@/store/wallet";
 import { InvoiceStatus } from "@/components/invoice/InvoiceStatus";
-import { StatusTimeline } from "@/components/invoice/StatusTimeline";
+import { InvoiceStatusTimeline } from "@/components/invoice/InvoiceStatusTimeline";
 import { Button } from "@/components/ui/button";
 import { TransactionPending } from "@/components/shared/TransactionPending";
 import {
@@ -162,18 +162,6 @@ export default function InvoiceDetailClient({
   const daysRemaining = Math.ceil(secondsRemaining / (24 * 3600));
   const isOverdue = secondsRemaining < 0;
 
-  const timestamps = {
-    created: invoice.createdAt,
-    funded: invoice.fundedAt || undefined,
-    shipped: invoice.shippedAt || undefined,
-    confirmed: invoice.buyerConfirmed
-      ? invoice.shippedAt
-        ? invoice.shippedAt + 3600
-        : invoice.createdAt + 7200
-      : undefined,
-    repaid: invoice.repaidAt || undefined,
-  };
-
   return (
     <PageLayout>
       <div className="space-y-6 py-4">
@@ -205,6 +193,7 @@ export default function InvoiceDetailClient({
               <button
                 onClick={() => copyToClipboard(invoice.id, "id")}
                 className="text-slate-600 hover:text-primary transition-colors"
+                aria-label="Copy invoice ID"
               >
                 {copiedId ? (
                   <Check className="w-3.5 h-3.5 text-emerald-400" />
@@ -230,7 +219,7 @@ export default function InvoiceDetailClient({
             <Activity className="w-3.5 h-3.5 text-primary" />
             Soroban Transaction Progress
           </h3>
-          <StatusTimeline status={invoice.status} timestamps={timestamps} />
+          <InvoiceStatusTimeline invoice={invoice} />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -467,23 +456,21 @@ export default function InvoiceDetailClient({
                       </Button>
                     )}
 
-                  {(invoice.status === "Confirmed" ||
-                    invoice.status === "Active") &&
-                    role === "buyer" && (
-                      <Button
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase text-xs tracking-wider py-2.5 rounded shadow-[0_0_15px_rgba(16,185,129,0.15)]"
-                        onClick={() =>
-                          handleAction(
-                            () => repayInvoice({ invoiceId: invoice.id }),
-                            "Submitting USDC repayment...",
-                            "Failed to repay invoice",
-                          )
-                        }
-                        disabled={submitting}
-                      >
-                        REPAY {formatAmount(invoice.faceValue)}
-                      </Button>
-                    )}
+                  {invoice.status === "Confirmed" && role === "buyer" && (
+                    <Button
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold uppercase text-xs tracking-wider py-2.5 rounded shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+                      onClick={() =>
+                        handleAction(
+                          () => repayInvoice({ invoiceId: invoice.id }),
+                          "Submitting USDC repayment...",
+                          "Failed to repay invoice",
+                        )
+                      }
+                      disabled={submitting}
+                    >
+                      REPAY {formatAmount(invoice.faceValue)}
+                    </Button>
+                  )}
 
                   {invoice.status === "Active" && isOverdue && (
                     <Button

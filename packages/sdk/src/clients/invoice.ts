@@ -4,6 +4,11 @@ import { Invoice, InvoiceStatus } from '../types/index.js';
 import { parseInvoice } from '../types/schemas.js';
 
 export class InvoiceClient extends BaseContractClient {
+  async initialize(adminAddress: string, signerPublicKey: string): Promise<string> {
+    const args = [new Address(adminAddress).toScVal()];
+    return this.writeContract('initialize', args, signerPublicKey);
+  }
+
   async create(
     issuer: string,
     buyer: string,

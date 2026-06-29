@@ -61,7 +61,7 @@ export function usePool() {
       const poolClient = new PoolClient(poolContractID);
       return poolClient.deposit(address, amount, address);
     },
-    onSuccess: (txHash) => {
+    onSuccess: (txHash: string) => {
       queryClient.invalidateQueries({ queryKey: ["poolStats"] });
       queryClient.invalidateQueries({ queryKey: ["lpPosition", address] });
       showSuccessToast("Deposit Complete", txHash);
@@ -86,13 +86,10 @@ export function usePool() {
       const poolClient = new PoolClient(poolContractID);
       return poolClient.withdraw(address, shares, address);
     },
-    onSuccess: (txHash) => {
+    onSuccess: (txHash: string) => {
       queryClient.invalidateQueries({ queryKey: ["poolStats"] });
       queryClient.invalidateQueries({ queryKey: ["lpPosition", address] });
-      showSuccessToast(
-        "Withdrawal Complete",
-        typeof txHash === "string" ? txHash : undefined,
-      );
+      showSuccessToast("Withdrawal Complete", txHash);
     },
     onError: (error) => {
       showErrorToast(

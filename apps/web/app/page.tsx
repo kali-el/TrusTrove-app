@@ -6,6 +6,8 @@ import { Navbar } from "@/components/shared/Navbar";
 import { InvoiceFeed } from "@/components/shared/InvoiceFeed";
 import { LpYieldCalculator } from "@/components/shared/LpYieldCalculator";
 import { DiscountCalculator } from "@/components/shared/DiscountCalculator";
+import { SkeletonShimmer } from "@/components/shared/SkeletonLoader";
+import { usePool } from "@/hooks/usePool";
 import {
   ShieldCheck,
   FileCheck2,
@@ -17,6 +19,37 @@ import {
 } from "lucide-react";
 
 export default function Home() {
+  const { stats, isStatsLoading, statsError } = usePool();
+
+  // Compact USDC formatting (e.g. "12.4M") derived from the stroop-denominated stat.
+  const formatCompactUsdc = (amount: bigint | undefined): string | null => {
+    if (amount === undefined) return null;
+    const value = Number(amount) / 10_000_000;
+    return value.toLocaleString("en-US", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    });
+  };
+
+  // Per-stat renderer: skeleton while loading, graceful fallback when the indexer is unavailable.
+  const renderStat = (value: string | null) => {
+    if (isStatsLoading) {
+      return <SkeletonShimmer className="h-7 w-20 mx-auto lg:mx-0" />;
+    }
+    if (statsError || value === null) {
+      return (
+        <span className="text-xl sm:text-2xl font-bold font-mono text-slate-600 block">
+          —
+        </span>
+      );
+    }
+    return (
+      <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
+        {value}
+      </span>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary selection:text-black">
       {/* Top Status Bar with scrolling ticker */}
@@ -26,7 +59,10 @@ export default function Home() {
       <Navbar />
 
       {/* Hero Section */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20 relative">
+      <main
+        id="main-content"
+        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20 relative"
+      >
         {/* Subtle grid background pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a2330_1px,transparent_1px),linear-gradient(to_bottom,#1a2330_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] -z-10 opacity-20 pointer-events-none" />
 
@@ -68,25 +104,23 @@ export default function Home() {
             {/* Core Stats Row */}
             <div className="grid grid-cols-3 gap-4 border-t border-b border-border/40 py-6">
               <div className="text-center lg:text-left">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                  12.4M
-                </span>
+                {renderStat(formatCompactUsdc(stats?.totalDeposits))}
                 <span className="text-[10px] font-mono text-slate-500 uppercase font-bold tracking-wider block mt-1">
                   USDC POOL VALUE
                 </span>
               </div>
               <div className="text-center lg:text-left">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                  4,821
-                </span>
+                {renderStat(
+                  stats
+                    ? stats.activeInvoiceCount.toLocaleString("en-US")
+                    : null,
+                )}
                 <span className="text-[10px] font-mono text-slate-500 uppercase font-bold tracking-wider block mt-1">
                   INVOICES FUNDED
                 </span>
               </div>
               <div className="text-center lg:text-left">
-                <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                  245.8K
-                </span>
+                {renderStat(formatCompactUsdc(stats?.totalYieldDistributed))}
                 <span className="text-[10px] font-mono text-slate-500 uppercase font-bold tracking-wider block mt-1">
                   YIELD DISTRIBUTED
                 </span>

@@ -7,8 +7,61 @@ import {
   xdr,
   scValToNative,
 } from "@stellar/stellar-sdk";
-import { signTransaction } from "@stellar/freighter-api";
+import * as freighterApi from "@stellar/freighter-api";
 import { getConfig, getSorobanServer } from "./config.js";
+
+const signTransactionFn =
+  (
+    freighterApi as unknown as {
+      signTransaction?: (
+        transactionXdr: string,
+        opts?: {
+          network?: string;
+          networkPassphrase?: string;
+          accountToSign?: string;
+        },
+      ) => Promise<string>;
+      default?: {
+        signTransaction?: (
+          transactionXdr: string,
+          opts?: {
+            network?: string;
+            networkPassphrase?: string;
+            accountToSign?: string;
+          },
+        ) => Promise<string>;
+      };
+    }
+  ).signTransaction ||
+  (
+    freighterApi as unknown as {
+      default?: {
+        signTransaction?: (
+          transactionXdr: string,
+          opts?: {
+            network?: string;
+            networkPassphrase?: string;
+            accountToSign?: string;
+          },
+        ) => Promise<string>;
+      };
+    }
+  ).default?.signTransaction;
+
+if (!signTransactionFn) {
+  throw new Error(
+    "The installed @stellar/freighter-api package does not expose signTransaction",
+  );
+}
+
+const signTransactionCompat = signTransactionFn as (
+  transactionXdr: string,
+  opts?: {
+    network?: string;
+    networkPassphrase?: string;
+    accountToSign?: string;
+  },
+) => Promise<string>;
 
 const MAX_TRANSACTION_POLL_ATTEMPTS = 30;
 
@@ -143,7 +196,7 @@ export class BaseContractClient {
     }
 
     const prepared = await withRetry(() => server.prepareTransaction(tx));
-    const signed = await signTransaction(prepared.toXDR(), {
+    const signed = await signTransactionCompat(prepared.toXDR(), {
       network:
         config.networkPassphrase === Networks.PUBLIC ? "PUBLIC" : "TESTNET",
       networkPassphrase: config.networkPassphrase,

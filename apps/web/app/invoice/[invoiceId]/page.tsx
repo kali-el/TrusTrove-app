@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import { Invoice } from "@/types";
 import { formatAmount } from "@/lib/assets";
 import InvoiceDetailClient from "./InvoiceDetailClient";
-
-const inter = Inter({ subsets: ["latin"] });
 
 const getIndexerApiUrl = () => {
   return process.env.NEXT_PUBLIC_INDEXER_API_URL || "http://localhost:8080";
