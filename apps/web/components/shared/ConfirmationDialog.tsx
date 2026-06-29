@@ -3,6 +3,7 @@
 import React from "react";
 import { X, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { useConfirmDialogStore } from "@/store/confirmDialog";
 
 function truncateAddr(addr: string) {
@@ -15,6 +16,8 @@ export function ConfirmationDialog() {
 
   if (!pendingAction) return null;
 
+  const overlayRef = useFocusTrap<HTMLDivElement>(!!pendingAction, cancel);
+
   const handleConfirm = () => {
     const action = pendingAction;
     cancel();
@@ -23,6 +26,7 @@ export function ConfirmationDialog() {
 
   return (
     <div
+      ref={overlayRef}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={cancel}
     >
