@@ -1,9 +1,7 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { ArrowUpRight } from 'lucide-react';
-import { useRecentEvents } from '@/hooks/useEvents';
-import { EventLog } from '@/types';
+import React from "react";
+import { ArrowUpRight } from "lucide-react";
 
 interface TickerItem {
   id: string;
@@ -13,6 +11,49 @@ interface TickerItem {
   time: string;
   country: string;
 }
+
+const tickerItems: TickerItem[] = [
+  {
+    id: "1",
+    sme: "Lagos Textile Supplier",
+    amount: "34,500 USDC",
+    discount: "2.1%",
+    time: "3m ago",
+    country: "🇳🇬",
+  },
+  {
+    id: "2",
+    sme: "Nairobi Agri-Exporter",
+    amount: "18,200 USDC",
+    discount: "1.8%",
+    time: "8m ago",
+    country: "🇰🇪",
+  },
+  {
+    id: "3",
+    sme: "Accra Electronics",
+    amount: "52,000 USDC",
+    discount: "2.5%",
+    time: "12m ago",
+    country: "🇬🇭",
+  },
+  {
+    id: "4",
+    sme: "Mombasa Logistics Ltd",
+    amount: "27,800 USDC",
+    discount: "2.0%",
+    time: "22m ago",
+    country: "🇰🇪",
+  },
+  {
+    id: "5",
+    sme: "Dakar Fish Processing",
+    amount: "41,300 USDC",
+    discount: "2.3%",
+    time: "35m ago",
+    country: "🇸🇳",
+  },
+];
 
 export function TopStatusBar() {
   const { events: rawEvents, isLoading, isError } = useRecentEvents(20);
@@ -111,32 +152,33 @@ export function TopStatusBar() {
       {/* Scrolling Ticker */}
       <div className="flex-1 overflow-hidden relative h-4 flex items-center">
         <div className="flex gap-12 whitespace-nowrap animate-[marquee_25s_linear_infinite] hover:[animation-play-state:paused]">
-          {[{...tickerItems, ...tickerItems}].flat().map((item, idx) => (
-            <div key={`${item.id}-${idx}`} className="inline-flex items-center gap-2 text-[10px] font-mono">
+          {[...tickerItems, ...tickerItems].map((item, idx) => (
+            <div
+              key={`${item.id}-${idx}`}
+              className="inline-flex items-center gap-2 text-[10px] font-mono"
+            >
               <span className="text-slate-500">{item.country}</span>
               <span className="text-slate-300 font-bold">{item.sme}</span>
               <span className="text-primary font-bold">{item.amount}</span>
               <span className="text-slate-500">at</span>
-              <span className="text-sky-400 font-semibold">{item.discount} discount</span>
+              <span className="text-sky-400 font-semibold">
+                {item.discount} discount
+              </span>
               <span className="text-slate-600">({item.time})</span>
               <ArrowUpRight className="w-3 h-3 text-primary/45 shrink-0" />
             </div>
           ))}
         </div>
       </div>
-      
-      {/* Status indicator */}
-      {isError && (
-        <span className="text-[10px] font-mono text-red-400">Data Error</span>
-      )}
-      {!isError && !rawEvents && (
-        <span className="text-[10px] font-mono text-yellow-400">Awaiting Data...</span>
-      )}
-      
+
       <style jsx global>{`
         @keyframes marquee {
-          0% { transform: translateX(0%); }
-          100% { transform: translateX(-50%); }
+          0% {
+            transform: translateX(0%);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
         }
       `}</style>
     </div>

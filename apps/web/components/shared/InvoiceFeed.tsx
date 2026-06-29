@@ -1,127 +1,99 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowDownLeft, Zap } from 'lucide-react';
-import { useRecentEvents } from '@/hooks/useEvents';
-import { EventLog } from '@/types';
+import React, { useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  FilePlus2,
+  Tag,
+  Coins,
+  Truck,
+  PackageCheck,
+  BadgeCheck,
+  AlertTriangle,
+  Activity,
+  Zap,
+} from "lucide-react";
+import { useRecentEvents } from "@/hooks/useEvents";
+import { InvoiceFeedSkeleton } from "@/components/shared/SkeletonLoader";
+import type { EventLog } from "@/types";
 
-interface FeedItem {
-  id: string;
-  type: string;
-  amount: string;
+const FEED_LIMIT = 6;
+const POLL_INTERVAL_MS = 10000;
+
+interface FeedEntry {
+  id: number;
+  label: string;
+  details: string;
   time: string;
-  discount: string;
-  flag: string;
+  Icon: typeof Activity;
+}
+
+const EVENT_LABELS: Record<string, string> = {
+  InvoiceCreated: "Invoice Created",
+  create: "Invoice Created",
+  InvoiceListed: "Invoice Listed",
+  list_for_financing: "Invoice Listed",
+  InvoiceFunded: "Invoice Funded",
+  fund_invoice: "Invoice Funded",
+  InvoiceShipped: "Invoice Shipped",
+  mark_shipped: "Invoice Shipped",
+  DeliveryConfirmed: "Delivery Confirmed",
+  confirm_delivery: "Delivery Confirmed",
+  InvoiceRepaid: "Invoice Repaid",
+  repay: "Invoice Repaid",
+  InvoiceDefaulted: "Invoice Defaulted",
+  trigger_default: "Invoice Defaulted",
+};
+
+const EVENT_ICONS: Record<string, typeof Activity> = {
+  InvoiceCreated: FilePlus2,
+  create: FilePlus2,
+  InvoiceListed: Tag,
+  list_for_financing: Tag,
+  InvoiceFunded: Coins,
+  fund_invoice: Coins,
+  InvoiceShipped: Truck,
+  mark_shipped: Truck,
+  DeliveryConfirmed: PackageCheck,
+  confirm_delivery: PackageCheck,
+  InvoiceRepaid: BadgeCheck,
+  repay: BadgeCheck,
+  InvoiceDefaulted: AlertTriangle,
+  trigger_default: AlertTriangle,
+};
+
+function formatRelativeTime(ledgerClosedAt: number): string {
+  const diff = Math.floor(Date.now() / 1000) - ledgerClosedAt;
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+  return `${Math.floor(diff / 86400)}d ago`;
+}
+
+function toFeedEntry(event: EventLog): FeedEntry {
+  const invoiceId =
+    typeof event.data?.invoice_id === "string" ? event.data.invoice_id : "";
+  const invoiceShort = invoiceId
+    ? `INV#${invoiceId.slice(0, 6)}…`
+    : "On-chain event";
+  return {
+    id: event.id,
+    label: EVENT_LABELS[event.event_type] || event.event_type,
+    details: invoiceShort,
+    time: formatRelativeTime(event.ledger_closed_at),
+    Icon: EVENT_ICONS[event.event_type] || Activity,
+  };
 }
 
 export function InvoiceFeed() {
-  const { events: rawEvents, isLoading, isError } = useRecentEvents(8);
-  const [items, setItems] = useState<FeedItem[]>([]);
-  const [counter, setCounter] = useState(0);
+  const { events, isLoading } = useRecentEvents(FEED_LIMIT, {
+    refetchInterval: POLL_INTERVAL_MS,
+  });
 
-  // Format event for display in the feed
-  const formatEventForFeed = (event: EventLog): FeedItem => {
-    // Map event type to a readable format
-    const typeMap: Record<string, string> = {
-      InvoiceCreated: 'Invoice Created',
-      InvoiceListed: 'Invoice Listed',
-      InvoiceFunded: 'Invoice Funded',
-      InvoiceShipped: 'Invoice Shipped',
-      DeliveryConfirmed: 'Delivery Confirmed',
-      InvoiceRepaid: 'Invoice Repaid',
-      InvoiceDefaulted: 'Invoice Defaulted',
-    };
-
-    const eventType = typeMap[event.event_type] || event.event_type.replace(/_/g, ' ');
-    
-    // Extract amount from event data (assuming it's in USDC)
-    let amount = '$0 USDC';
-    if (event.data && event.data.funded_amount) {
-      const amountInUSDC = Number(event.data.funded_amount) / 1000000; // Convert from stroops to USDC
-      amount = `$${amountInUSDC.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDC`;
-    } else if (event.data && event.data.face_value) {
-      const amountInUSDC = Number(event.data.face_value) / 1000000; // Convert from stroops to USDC
-      amount = `$${amountInUSDC.toLocaleString(undefined, { maximumFractionDigits: 0 })} USDC`;
-    }
-
-    // Extract discount from event data (in basis points)
-    let discount = '0.0%';
-    if (event.data && event.data.discount_bps) {
-      const discountPercent = Number(event.data.discount_bps) / 100;
-      discount = `${discountPercent.toFixed(1)}%`;
-    }
-
-    // Calculate time ago
-    const now = Math.floor(Date.now() / 1000);
-    const diff = now - event.ledger_closed_at;
-    let time = '';
-    if (diff < 60) time = 'just now';
-    else if (diff < 3600) time = `${Math.floor(diff / 60)} min ago`;
-    else if (diff < 86400) time = `${Math.floor(diff / 3600)}h ago`;
-    else time = `${Math.floor(diff / 86400)}d ago`;
-
-    // Determine flag based on issuer/buyer (simplified - using hash for demo)
-    const flagMap: Record<string, string> = {
-      '0': '🇳🇬', '1': '🇰🇪', '2': '🇬🇭', '3': '🇸🇳', '4': '🇺🇬', 
-      '5': '🇨🇮', '6': '🇹🇬', '7': '🇧🇯', '8': '🇸🇱', '9': '🇱🇷'
-    };
-    const hash = Array.from(event.id).reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const flag = flagMap[hash % 10] || '🌍';
-
-    // Generate a readable type based on parties involved
-    let type = eventType;
-    if (event.data.buyer && event.data.issuer) {
-      // Extract first part of name or use generic
-      type = `${event.data.buyer?.slice(0, 8)}... ${eventType.toLowerCase()}`;
-    }
-
-    return {
-      id: event.id.toString(),
-      type,
-      amount,
-      time,
-      discount,
-      flag,
-    };
-  };
-
-  useEffect(() => {
-    if (rawEvents && rawEvents.length > 0) {
-      // Convert events to feed items
-      const feedItems = rawEvents.map(formatEventForFeed);
-      setItems(feedItems.slice(0, 4)); // Show first 4 items
-      setCounter(feedItems.length);
-    }
-  }, [rawEvents]);
-
-  // Simulate periodic updates for demo purposes (in real app, this would come from real-time updates)
-  useEffect(() => {
-    if (!rawEvents || rawEvents.length === 0) return;
-
-    const interval = setInterval(() => {
-      // Rotate through events to show different ones
-      if (rawEvents.length > 0) {
-        const startIndex = counter % rawEvents.length;
-        const endIndex = Math.min(startIndex + 4, rawEvents.length);
-        const displayedEvents = rawEvents.slice(startIndex, endIndex);
-        
-        // If we don't have enough items, wrap around
-        if (displayedEvents.length < 4 && rawEvents.length >= 4) {
-          const remainingNeeded = 4 - displayedEvents.length;
-          const wrappedEvents = rawEvents.slice(0, remainingNeeded);
-          const allEvents = [...displayedEvents, ...wrappedEvents];
-          setItems(allEvents.map(formatEventForFeed));
-        } else {
-          setItems(displayedEvents.map(formatEventForFeed));
-        }
-        
-        setCounter((prev) => prev + 1);
-      }
-    }, 5000); // Change every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [rawEvents, counter]);
+  const items = useMemo(
+    () => events.slice(0, FEED_LIMIT).map(toFeedEntry),
+    [events],
+  );
 
   return (
     <div className="border border-border/80 bg-[#0d131a] rounded-lg overflow-hidden h-[340px] flex flex-col">
@@ -130,41 +102,65 @@ export function InvoiceFeed() {
           <Zap className="w-3.5 h-3.5" />
           Live Financing Feed
         </span>
-        <span className="text-[9px] font-mono text-slate-500 uppercase">Realtime testnet activity</span>
+        <span className="text-[9px] font-mono text-slate-500 uppercase">
+          Realtime testnet activity
+        </span>
       </div>
 
       <div className="flex-1 p-4 relative overflow-hidden flex flex-col gap-3 justify-start">
-        {isError ? (
-          <div className="text-center py-8 text-slate-400 text-[9px] font-mono">
-            Unable to load live feed
+        {isLoading ? (
+          <InvoiceFeedSkeleton />
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center gap-2">
+            <Activity className="w-5 h-5 text-slate-600" />
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+              Awaiting on-chain activity
+            </span>
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            {items.map((item) => (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: -40, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 40, scale: 0.95, position: 'absolute', bottom: 16, left: 16, right: 16 }}
-                transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                className="bg-[#080c10] border border-border/40 p-3 rounded flex items-center justify-between gap-4 w-full"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="text-lg shrink-0 select-none">{item.flag}</div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-mono font-bold text-slate-300 block truncate">{item.type}</span>
-                    <span className="text-[9px] font-mono text-slate-500 block">{item.time}</span>
+            {items.map((item) => {
+              const { Icon } = item;
+              return (
+                <motion.div
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: -40, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{
+                    opacity: 0,
+                    y: 40,
+                    scale: 0.95,
+                    position: "absolute",
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                  }}
+                  transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                  className="bg-[#080c10] border border-border/40 p-3 rounded flex items-center justify-between gap-4 w-full"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="text-primary shrink-0">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="text-xs font-mono font-bold text-slate-300 block truncate">
+                        {item.label}
+                      </span>
+                      <span className="text-[9px] font-mono text-slate-500 block">
+                        {item.time}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                
-                <div className="text-right shrink-0">
-                  <span className="text-xs font-mono font-bold text-primary block">{item.amount}</span>
-                  <span className="text-[9px] font-mono text-sky-400 font-semibold block flex items-center justify-end gap-0.5">
-                    <ArrowDownLeft className="w-2.5 h-2.5" /> {item.discount} disc.
-                  </span>
-                </div>
-              </motion.div>
-            ))}
+
+                  <div className="text-right shrink-0">
+                    <span className="text-[11px] font-mono font-bold text-primary block truncate max-w-[110px]">
+                      {item.details}
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
         )}
       </div>

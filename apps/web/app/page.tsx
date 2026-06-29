@@ -1,72 +1,82 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { TopStatusBar } from '@/components/shared/TopStatusBar';
-import { Navbar } from '@/components/shared/Navbar';
-import { InvoiceFeed } from '@/components/shared/InvoiceFeed';
-import { LpYieldCalculator } from '@/components/shared/LpYieldCalculator';
-import { DiscountCalculator } from '@/components/shared/DiscountCalculator';
-import { usePool } from '@/hooks/usePool';
-import { useInvoices } from '@/hooks/useInvoices';
-import { 
-  ShieldCheck, 
-  FileCheck2, 
-  Layers, 
+import Link from "next/link";
+import { TopStatusBar } from "@/components/shared/TopStatusBar";
+import { Navbar } from "@/components/shared/Navbar";
+import { InvoiceFeed } from "@/components/shared/InvoiceFeed";
+import { LpYieldCalculator } from "@/components/shared/LpYieldCalculator";
+import { DiscountCalculator } from "@/components/shared/DiscountCalculator";
+import { SkeletonShimmer } from "@/components/shared/SkeletonLoader";
+import { usePool } from "@/hooks/usePool";
+import {
+  ShieldCheck,
+  FileCheck2,
+  Layers,
   Coins,
   Database,
   ArrowRightLeft,
-  Landmark
-} from 'lucide-react';
+  Landmark,
+} from "lucide-react";
 
 export default function Home() {
   const { stats, isStatsLoading, statsError } = usePool();
 
-  // Format big numbers for display
-  const formatNumber = (num: bigint | number, decimals = 6) => {
-    if (typeof num === 'bigint') {
-      return (Number(num) / Math.pow(10, decimals)).toLocaleString(undefined, { maximumFractionDigits: 1 });
-    }
-    return num.toLocaleString(undefined, { maximumFractionDigits: 1 });
+  // Compact USDC formatting (e.g. "12.4M") derived from the stroop-denominated stat.
+  const formatCompactUsdc = (amount: bigint | undefined): string | null => {
+    if (amount === undefined) return null;
+    const value = Number(amount) / 10_000_000;
+    return value.toLocaleString("en-US", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    });
   };
-  
-  // Format number for display in millions (e.g., 12.4M)
-  const formatMillions = (num: bigint | number) => {
-    if (typeof num === 'bigint') {
-      return (Number(num) / Math.pow(10, 12)).toLocaleString(undefined, { maximumFractionDigits: 1 }); // divid by 10^12 to get millions
+
+  // Per-stat renderer: skeleton while loading, graceful fallback when the indexer is unavailable.
+  const renderStat = (value: string | null) => {
+    if (isStatsLoading) {
+      return <SkeletonShimmer className="h-7 w-20 mx-auto lg:mx-0" />;
     }
-    return (num / Math.pow(10, 12)).toLocaleString(undefined, { maximumFractionDigits: 1 });
-  };
-  
-  // Format number for display in thousands (e.g., 245.8K)
-  const formatThousands = (num: bigint | number) => {
-    if (typeof num === 'bigint') {
-      return (Number(num) / Math.pow(10, 9)).toLocaleString(undefined, { maximumFractionDigits: 1 }); // divid by 10^9 to get thousands
+    if (statsError || value === null) {
+      return (
+        <span className="text-xl sm:text-2xl font-bold font-mono text-slate-600 block">
+          —
+        </span>
+      );
     }
-    return (num / Math.pow(10, 9)).toLocaleString(undefined, { maximumFractionDigits: 1 });
+    return (
+      <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
+        {value}
+      </span>
+    );
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col selection:bg-primary selection:text-black">
       {/* Top Status Bar with scrolling ticker */}
       <TopStatusBar />
-      
+
       {/* Main navigation */}
       <Navbar />
 
       {/* Hero Section */}
-      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20 relative">
+      <main
+        id="main-content"
+        className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-20 relative"
+      >
         {/* Subtle grid background pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#1a2330_1px,transparent_1px),linear-gradient(to_bottom,#1a2330_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] -z-10 opacity-20 pointer-events-none" />
 
         {/* 3-Column Split Hero */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pt-4 items-start">
-          
           {/* LEFT: Live Invoice Financing Feed */}
           <div className="lg:col-span-3 space-y-3">
             <InvoiceFeed />
             <div className="bg-[#0d131a] border border-border rounded-lg p-4 font-mono text-[10px] text-slate-500 leading-normal">
-              <span className="text-primary font-bold block mb-1">STELLAR INTEGRATION</span>
-              Every entry represents a cryptographically secure, on-chain event emitted by the Soroban network and synced by our indexer.
+              <span className="text-primary font-bold block mb-1">
+                STELLAR INTEGRATION
+              </span>
+              Every entry represents a cryptographically secure, on-chain event
+              emitted by the Soroban network and synced by our indexer.
             </div>
           </div>
 
@@ -80,11 +90,14 @@ export default function Home() {
                 ELIMINATE THE <br className="hidden sm:inline" />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-emerald-400">
                   $2.5 TRILLION
-                </span> <br />
+                </span>{" "}
+                <br />
                 TRADE FINANCE GAP
               </h1>
               <p className="text-slate-400 text-sm leading-relaxed max-w-xl">
-                TrusTrove tokenizes outstanding trade obligations on Stellar. SMEs secure immediate working capital at fair rates, and liquidity providers earn direct yield.
+                TrusTrove tokenizes outstanding trade obligations on Stellar.
+                SMEs secure immediate working capital at fair rates, and
+                liquidity providers earn direct yield.
               </p>
             </div>
 
@@ -92,19 +105,7 @@ export default function Home() {
             <div className="grid grid-cols-3 gap-4 border-t border-b border-border/40 py-6">
               {/* Pool Value */}
               <div className="text-center lg:text-left">
-                {isStatsLoading ? (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block animate-pulse">
-                    --.-M
-                  </span>
-                ) : statsError ? (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                    --.-M
-                  </span>
-                ) : (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                    {stats ? `${formatMillions(stats.totalDeposits || stats.totalFunded)}M` : '--.-M'}
-                  </span>
-                )}
+                {renderStat(formatCompactUsdc(stats?.totalDeposits))}
                 <span className="text-[10px] font-mono text-slate-500 uppercase font-bold tracking-wider block mt-1">
                   USDC POOL VALUE
                 </span>
@@ -112,18 +113,10 @@ export default function Home() {
               
               {/* Invoices Funded */}
               <div className="text-center lg:text-left">
-                {isStatsLoading ? (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block animate-pulse">
-                    --,---
-                  </span>
-                ) : statsError ? (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                    --,---
-                  </span>
-                ) : (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                    {stats ? stats.activeInvoiceCount?.toLocaleString() : '--,---'}
-                  </span>
+                {renderStat(
+                  stats
+                    ? stats.activeInvoiceCount.toLocaleString("en-US")
+                    : null,
                 )}
                 <span className="text-[10px] font-mono text-slate-500 uppercase font-bold tracking-wider block mt-1">
                   INVOICES FUNDED
@@ -132,19 +125,7 @@ export default function Home() {
               
               {/* Yield Distributed */}
               <div className="text-center lg:text-left">
-                {isStatsLoading ? (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block animate-pulse">
-                    --.-K
-                  </span>
-                ) : statsError ? (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                    --.-K
-                  </span>
-                ) : (
-                  <span className="text-xl sm:text-2xl font-bold font-mono text-white block">
-                    {stats ? `${formatThousands(stats.totalYieldDistributed)}K` : '--.-K'}
-                  </span>
-                )}
+                {renderStat(formatCompactUsdc(stats?.totalYieldDistributed))}
                 <span className="text-[10px] font-mono text-slate-500 uppercase font-bold tracking-wider block mt-1">
                   YIELD DISTRIBUTED
                 </span>
@@ -183,7 +164,8 @@ export default function Home() {
                 1. REGISTER AS SME
               </h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                Verify your business identity on-chain via the registry contract to establish trusted credentials.
+                Verify your business identity on-chain via the registry contract
+                to establish trusted credentials.
               </p>
             </div>
 
@@ -196,7 +178,8 @@ export default function Home() {
                 2. TOKENIZE INVOICE
               </h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                Generate a unique invoice cryptographic hash on-chain representing your commercial shipment.
+                Generate a unique invoice cryptographic hash on-chain
+                representing your commercial shipment.
               </p>
             </div>
 
@@ -209,7 +192,8 @@ export default function Home() {
                 3. RECEIVE USDC LIQUIDITY
               </h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                Pool contract immediately funds the invoice at the agreed discount rate directly into your wallet.
+                Pool contract immediately funds the invoice at the agreed
+                discount rate directly into your wallet.
               </p>
             </div>
 
@@ -222,7 +206,8 @@ export default function Home() {
                 4. BUYER MATURITY SETTLEMENT
               </h4>
               <p className="text-[11px] text-slate-500 leading-relaxed">
-                Buyer pays full invoice face value to the pool upon due date, releasing escrow and yielding LP interest.
+                Buyer pays full invoice face value to the pool upon due date,
+                releasing escrow and yielding LP interest.
               </p>
             </div>
           </div>
@@ -249,7 +234,8 @@ export default function Home() {
                 </h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Manages decentralized profiles and KYC verification status for issuers and buyers.
+                Manages decentralized profiles and KYC verification status for
+                issuers and buyers.
               </p>
               <div className="bg-[#080c10] border border-border/40 p-2.5 rounded text-[10px] font-mono flex justify-between text-slate-500">
                 <span>VERIFIED ISSUERS:</span>
@@ -266,7 +252,8 @@ export default function Home() {
                 </h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Stores tokenized invoices, discount rates, status lifecycle events, and compliance signatures.
+                Stores tokenized invoices, discount rates, status lifecycle
+                events, and compliance signatures.
               </p>
               <div className="bg-[#080c10] border border-border/40 p-2.5 rounded text-[10px] font-mono flex justify-between text-slate-500">
                 <span>TOTAL OBLIGATIONS:</span>
@@ -283,7 +270,8 @@ export default function Home() {
                 </h3>
               </div>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Controls USDC liquidity deposits, share-based yield parameters, and locks obligations securely in escrow.
+                Controls USDC liquidity deposits, share-based yield parameters,
+                and locks obligations securely in escrow.
               </p>
               <div className="bg-[#080c10] border border-border/40 p-2.5 rounded text-[10px] font-mono flex justify-between text-slate-500">
                 <span>UTILIZATION RATE:</span>
@@ -320,9 +308,15 @@ export default function Home() {
         <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
           <span>© 2026 TRUSTROVE PROTOCOL — VERIFIED TRADE FINANCE</span>
           <div className="flex gap-4">
-            <a href="#" className="hover:text-primary transition-colors">SPECIFICATION</a>
-            <a href="#" className="hover:text-primary transition-colors">STELLAR EXPERT</a>
-            <Link href="/docs" className="hover:text-primary transition-colors">DOCUMENTATION</Link>
+            <a href="#" className="hover:text-primary transition-colors">
+              SPECIFICATION
+            </a>
+            <a href="#" className="hover:text-primary transition-colors">
+              STELLAR EXPERT
+            </a>
+            <Link href="/docs" className="hover:text-primary transition-colors">
+              DOCUMENTATION
+            </Link>
           </div>
         </div>
       </footer>
