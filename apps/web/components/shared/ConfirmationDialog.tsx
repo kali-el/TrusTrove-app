@@ -27,6 +27,9 @@ export function ConfirmationDialog() {
   return (
     <div
       ref={overlayRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirmation-dialog-title"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
       onClick={cancel}
     >
@@ -35,7 +38,10 @@ export function ConfirmationDialog() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-start mb-4">
-          <h4 className="text-sm font-bold font-mono text-white uppercase tracking-wider">
+          <h4
+            id="confirmation-dialog-title"
+            className="text-sm font-bold font-mono text-white uppercase tracking-wider"
+          >
             Confirm {pendingAction.label}
           </h4>
           <button
