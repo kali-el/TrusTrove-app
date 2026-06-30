@@ -6,6 +6,7 @@ import { useWalletStore } from '@/store/wallet';
 import { useProfile } from '@/hooks/useProfile';
 import { WalletConnect } from '@/components/shared/WalletConnect';
 import { TransactionPending } from '@/components/shared/TransactionPending';
+import { Modal } from '@/components/shared/Modal';
 import { Button } from '@/components/ui/button';
 import {
   ShieldCheck,
@@ -279,185 +280,186 @@ export default function ProfilePage() {
         )}
       </div>
 
-      {/* Registration Modal Dialog */}
-      {showRegModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#080c10]/95 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg bg-card border border-border rounded-lg p-6 relative shadow-[0_0_50px_rgba(0,212,170,0.05)]">
-            <button
-              onClick={() => setShowRegModal(false)}
-              className="absolute top-4 right-4 text-slate-500 hover:text-white font-bold font-mono text-xs uppercase"
-            >
-              [Close]
-            </button>
-            
-            <div className="mb-6 border-b border-border/40 pb-3">
-              <h2 className="text-sm font-bold font-mono tracking-wider uppercase text-white flex items-center gap-1.5">
-                <Building2 className="w-4 h-4 text-primary" />
-                Register Business Metadata
-              </h2>
-              <p className="text-[10px] text-slate-500 font-mono mt-0.5">
-                Input your company credentials. This metadata maps to your wallet address on-chain.
-              </p>
+      <Modal
+        isOpen={showRegModal}
+        onClose={() => setShowRegModal(false)}
+        title="Register Business Metadata"
+      >
+        <div className="w-full max-w-lg bg-card border border-border rounded-lg p-6 relative shadow-[0_0_50px_rgba(0,212,170,0.05)]">
+          <button
+            onClick={() => setShowRegModal(false)}
+            className="absolute top-4 right-4 text-slate-500 hover:text-white font-bold font-mono text-xs uppercase"
+          >
+            [Close]
+          </button>
+          
+          <div className="mb-6 border-b border-border/40 pb-3">
+            <h2 className="text-sm font-bold font-mono tracking-wider uppercase text-white flex items-center gap-1.5">
+              <Building2 className="w-4 h-4 text-primary" />
+              Register Business Metadata
+            </h2>
+            <p className="text-[10px] text-slate-500 font-mono mt-0.5">
+              Input your company credentials. This metadata maps to your wallet address on-chain.
+            </p>
+          </div>
+
+          <form onSubmit={handleRegisterSubmit} className="space-y-4 font-mono text-xs">
+            {/* Role Toggle Selector */}
+            <div className="space-y-2">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Select On-Chain Business Role
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setRegRole('issuer')}
+                  className={`py-2 px-3 border rounded text-center transition-all ${
+                    regRole === 'issuer'
+                      ? 'border-primary bg-primary/5 text-primary font-bold'
+                      : 'border-border bg-transparent text-slate-400 hover:text-white hover:bg-slate-900/40'
+                  }`}
+                >
+                  SME / Issuer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRegRole('buyer')}
+                  className={`py-2 px-3 border rounded text-center transition-all ${
+                    regRole === 'buyer'
+                      ? 'border-primary bg-primary/5 text-primary font-bold'
+                      : 'border-border bg-transparent text-slate-400 hover:text-white hover:bg-slate-900/40'
+                  }`}
+                >
+                  Obligor / Buyer
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={handleRegisterSubmit} className="space-y-4 font-mono text-xs">
-              {/* Role Toggle Selector */}
-              <div className="space-y-2">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Select On-Chain Business Role
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRegRole('issuer')}
-                    className={`py-2 px-3 border rounded text-center transition-all ${
-                      regRole === 'issuer'
-                        ? 'border-primary bg-primary/5 text-primary font-bold'
-                        : 'border-border bg-transparent text-slate-400 hover:text-white hover:bg-slate-900/40'
-                    }`}
-                  >
-                    SME / Issuer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRegRole('buyer')}
-                    className={`py-2 px-3 border rounded text-center transition-all ${
-                      regRole === 'buyer'
-                        ? 'border-primary bg-primary/5 text-primary font-bold'
-                        : 'border-border bg-transparent text-slate-400 hover:text-white hover:bg-slate-900/40'
-                    }`}
-                  >
-                    Obligor / Buyer
-                  </button>
-                </div>
+            {/* Company Name */}
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Company Name
+              </label>
+              <div className="relative">
+                <Building className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Acme Corp"
+                  className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  value={companyName}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                />
               </div>
+            </div>
 
-              {/* Company Name */}
+            {/* Tax ID & Country */}
+            <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Company Name
+                  Tax ID / Registration No.
                 </label>
                 <div className="relative">
-                  <Building className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                  <FileText className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Acme Corp"
+                    placeholder="e.g. EU123456789"
                     className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
+                    value={taxId}
+                    onChange={(e) => setTaxId(e.target.value)}
                   />
                 </div>
               </div>
 
-              {/* Tax ID & Country */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Tax ID / Registration No.
-                  </label>
-                  <div className="relative">
-                    <FileText className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. EU123456789"
-                      className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                      value={taxId}
-                      onChange={(e) => setTaxId(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Country of Incorporation
-                  </label>
-                  <div className="relative">
-                    <Globe className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Germany"
-                      className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Website URL */}
               <div className="space-y-1">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Corporate Website URL (Optional)
+                  Country of Incorporation
                 </label>
                 <div className="relative">
                   <Globe className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
                   <input
-                    type="url"
-                    placeholder="e.g. https://acme.corp"
+                    type="text"
+                    required
+                    placeholder="e.g. Germany"
                     className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    value={website}
-                    onChange={(e) => setWebsite(e.target.value)}
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
                   />
                 </div>
               </div>
+            </div>
 
-              {/* Email */}
-              <div className="space-y-1">
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                  Contact Email (Optional)
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-                  <input
-                    type="email"
-                    placeholder="e.g. admin@acme.corp"
-                    className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
+            {/* Website URL */}
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Corporate Website URL (Optional)
+              </label>
+              <div className="relative">
+                <Globe className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input
+                  type="url"
+                  placeholder="e.g. https://acme.corp"
+                  className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                />
               </div>
+            </div>
 
-              {/* Warnings and errors */}
-              {(localError || registerError) && (
-                <div className="p-3 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] flex items-start gap-2">
-                  <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
-                  <span>{localError || (registerError as any)?.message || 'Failed to submit registration'}</span>
-                </div>
-              )}
-
-              <div className="bg-[#080c10] border border-amber-500/20 p-3 rounded text-[10px] text-amber-500 leading-normal flex items-start gap-1.5">
-                <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                <span>
-                  Signing this registration requires Freighter authorization. You will submit a Soroban write transaction, which whitelists your wallet address and locks your business credentials.
-                </span>
+            {/* Email */}
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Contact Email (Optional)
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
+                <input
+                  type="email"
+                  placeholder="e.g. admin@acme.corp"
+                  className="w-full bg-[#080c10] border border-border rounded pl-10 pr-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
+            </div>
 
-              {/* Buttons */}
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowRegModal(false)}
-                  className="flex-1 border border-border bg-transparent hover:bg-slate-900 text-slate-400 font-bold uppercase py-2.5 rounded"
-                  disabled={isRegistering}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 bg-primary hover:bg-primary-hover text-black font-bold uppercase py-2.5 rounded shadow-[0_0_15px_rgba(0,212,170,0.15)] flex items-center justify-center gap-1.5"
-                  disabled={isRegistering}
-                >
-                  {isRegistering ? 'Signing...' : 'Register Profile'}
-                </button>
+            {/* Warnings and errors */}
+            {(localError || registerError) && (
+              <div className="p-3 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[11px] flex items-start gap-2">
+                <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{localError || (registerError as any)?.message || 'Failed to submit registration'}</span>
               </div>
-            </form>
-          </div>
+            )}
+
+            <div className="bg-[#080c10] border border-amber-500/20 p-3 rounded text-[10px] text-amber-500 leading-normal flex items-start gap-1.5">
+              <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                Signing this registration requires Freighter authorization. You will submit a Soroban write transaction, which whitelists your wallet address and locks your business credentials.
+              </span>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowRegModal(false)}
+                className="flex-1 border border-border bg-transparent hover:bg-slate-900 text-slate-400 font-bold uppercase py-2.5 rounded"
+                disabled={isRegistering}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex-1 bg-primary hover:bg-primary-hover text-black font-bold uppercase py-2.5 rounded shadow-[0_0_15px_rgba(0,212,170,0.15)] flex items-center justify-center gap-1.5"
+                disabled={isRegistering}
+              >
+                {isRegistering ? 'Signing...' : 'Register Profile'}
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
 
       {/* Transaction Pending Dialog Modal */}
       <TransactionPending
