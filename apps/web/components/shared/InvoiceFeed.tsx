@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { ArrowDownLeft, Zap } from 'lucide-react';
 
 interface FeedItem {
@@ -26,15 +26,18 @@ const mockFeedItems: FeedItem[] = [
 export function InvoiceFeed() {
   const [items, setItems] = useState<FeedItem[]>(mockFeedItems.slice(0, 4));
   const [counter, setCounter] = useState(4);
+  const latestIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
       // Pick next item from mock list
       const nextItem = mockFeedItems[counter % mockFeedItems.length];
+      const newId = String(Date.now());
+      latestIdRef.current = newId;
       
       // Update items: prepend next item and drop last
       setItems((prev) => [
-        { ...nextItem, id: String(Date.now()) }, // Ensure unique id for animations
+        { ...nextItem, id: newId },
         ...prev.slice(0, 3)
       ]);
       
@@ -55,14 +58,13 @@ export function InvoiceFeed() {
       </div>
 
       <div className="flex-1 p-4 relative overflow-hidden flex flex-col gap-3 justify-start">
-        <AnimatePresence initial={false}>
-          {items.map((item) => (
+        {items.map((item) => (
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: -40, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 40, scale: 0.95, position: 'absolute', bottom: 16, left: 16, right: 16 }}
-              transition={{ type: 'spring', stiffness: 350, damping: 25 }}
+              layout
+              initial={item.id === latestIdRef.current ? { opacity: 0, y: -40 } : { opacity: 1, y: 0 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
               className="bg-[#080c10] border border-border/40 p-3 rounded flex items-center justify-between gap-4 w-full"
             >
               <div className="flex items-center gap-2">
@@ -81,7 +83,6 @@ export function InvoiceFeed() {
               </div>
             </motion.div>
           ))}
-        </AnimatePresence>
       </div>
     </div>
   );
