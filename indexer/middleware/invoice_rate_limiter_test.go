@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	rl "github.com/trusttrove/indexer/middleware"
+	rl "trusttrove/indexer/middleware"
 )
 
 // ----------------------------------------------------------------- helpers --
