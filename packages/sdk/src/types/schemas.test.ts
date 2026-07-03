@@ -9,8 +9,7 @@
  *  4. The PoolStats TypeScript interface includes totalShares: bigint
  */
 
-import { strict as assert } from 'node:assert';
-import { describe, it } from 'node:test';
+import { describe, it, expect } from 'vitest';
 import { parsePoolStats } from './schemas.js';
 import type { PoolStats } from './index.js';
 
@@ -33,10 +32,8 @@ describe('parsePoolStats — totalShares', () => {
     const raw = baseStats({ total_shares: 250_000n });
     const result: PoolStats = parsePoolStats(raw);
 
-    assert.equal(typeof result.totalShares, 'bigint',
-      'totalShares should be a bigint');
-    assert.equal(result.totalShares, 250_000n,
-      'totalShares should equal the input value');
+    expect(typeof result.totalShares, 'totalShares should be a bigint').toBe('bigint');
+    expect(result.totalShares, 'totalShares should equal the input value').toBe(250_000n);
   });
 
   it('parses total_shares from a Map (scValToNative returns Map for Soroban struct)', () => {
@@ -51,9 +48,7 @@ describe('parsePoolStats — totalShares', () => {
     ]);
 
     const result: PoolStats = parsePoolStats(map);
-
-    assert.equal(result.totalShares, 999_888n,
-      'totalShares should be correctly read from a Map with snake_case key');
+    expect(result.totalShares, 'totalShares should be correctly read from a Map with snake_case key').toBe(999_888n);
   });
 
   it('coerces numeric total_shares to bigint', () => {
@@ -61,15 +56,17 @@ describe('parsePoolStats — totalShares', () => {
     const raw = baseStats({ total_shares: 42 });
     const result: PoolStats = parsePoolStats(raw);
 
-    assert.equal(result.totalShares, 42n,
-      'numeric total_shares should be coerced to bigint');
+    expect(result.totalShares, 'numeric total_shares should be coerced to bigint').toBe(42n);
   });
 
   it('coerces string total_shares to bigint', () => {
     const raw = baseStats({ total_shares: '123456789012345678901234567890' });
     const result: PoolStats = parsePoolStats(raw);
 
-    assert.equal(result.totalShares, 123456789012345678901234567890n);
+    expect(
+      result.totalShares,
+      'string total_shares should be coerced to bigint'
+    ).toBe(123456789012345678901234567890n);
   });
 
   it('defaults totalShares to 0n when field is absent (backward compatibility)', () => {
@@ -77,26 +74,29 @@ describe('parsePoolStats — totalShares', () => {
     const raw = baseStats(); // no total_shares key
     const result: PoolStats = parsePoolStats(raw);
 
-    assert.equal(result.totalShares, 0n,
-      'absent total_shares should default to 0n via bigintSchema preprocess');
+    expect(
+      result.totalShares,
+      'absent total_shares should default to 0n via bigintSchema preprocess'
+    ).toBe(0n);
   });
 
   it('parses all existing PoolStats fields alongside totalShares (no regression)', () => {
     const raw = baseStats({ total_shares: 777n });
     const result: PoolStats = parsePoolStats(raw);
 
-    assert.equal(result.totalDeposits,        1_000_000n);
-    assert.equal(result.totalFunded,            500_000n);
-    assert.equal(result.availableLiquidity,     500_000n);
-    assert.equal(result.utilizationRateBps,         5000);
-    assert.equal(result.totalYieldDistributed,   10_000n);
-    assert.equal(result.activeInvoiceCount,             3);
-    assert.equal(result.totalShares,                777n);
+    expect(result.totalDeposits).toBe(1_000_000n);
+    expect(result.totalFunded).toBe(500_000n);
+    expect(result.availableLiquidity).toBe(500_000n);
+    expect(result.utilizationRateBps).toBe(5000);
+    expect(result.totalYieldDistributed).toBe(10_000n);
+    expect(result.activeInvoiceCount).toBe(3);
+    expect(result.totalShares).toBe(777n);
   });
 
   it('TypeScript interface check — totalShares: bigint is assignable', () => {
-    // This is a compile-time check: if PoolStats is missing totalShares the
-    // TypeScript compiler will fail on this file during `tsc --noEmit`.
+    // Compile-time + runtime check: if `PoolStats` is missing `totalShares`,
+    // the literal below fails TypeScript; the runtime assertion is a
+    // belt-and-suspenders confirmation that the field is a bigint.
     const stats: PoolStats = {
       totalDeposits:         1_000_000n,
       totalFunded:             500_000n,
@@ -106,7 +106,7 @@ describe('parsePoolStats — totalShares', () => {
       activeInvoiceCount:             3,
       totalShares:              250_000n, // ← must compile without error
     };
-    assert.equal(typeof stats.totalShares, 'bigint');
+    expect(typeof stats.totalShares, 'totalShares should be a bigint').toBe('bigint');
   });
 
 });

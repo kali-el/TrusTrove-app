@@ -11,17 +11,17 @@ Adds `totalShares` to the SDK `PoolStats` model so consumers can derive LP share
 
 ### CI fixes (so CI is green)
 - `packages/sdk/src/types/index.ts` and `packages/sdk/src/types/schemas.ts` — each file's entire content was declared twice (introduced when the `totalShares` field was appended during this branch). Deduplicated: only the version with `totalShares` is kept. Resolves the `tsc` duplicate-identifier / block-scoped-variable errors that were breaking `pnpm build`.
-- `packages/sdk/package.json` — add `tsx` as a `devDependency` and change the test script from `node --test` to `tsx --test`. The new `schemas.test.ts` is a Node-native `.ts` test that the pinned Node 20 CI runner cannot load directly; `tsx` resolves that (alternatives such as `--experimental-strip-types` require Node ≥ 22.6). The Go indexer is unaffected.
+- `packages/sdk/package.json` — adopt upstream's vitest setup (`vitest` `^4.1.9` devDep + `vitest run --passWithNoTests` test script) and convert the new `schemas.test.ts` from `node:test`/`node:assert` to vitest's `describe`/`it`/`expect`. This aligns with the rest of the SDK test suite (already on vitest) so `pnpm test` compiles and runs cleanly under Node 20. The Go indexer is unaffected.
 
 ## Tests
-- New: `packages/sdk/src/types/schemas.test.ts` covers `totalShares` parsing from plain objects, from the `Map` returned by `scValToNative`, numeric and string coercion to `bigint`, the absent-field default of `0n`, regression of the existing fields, and a compile-time check that `totalShares` is in the `PoolStats` interface.
+- New: `packages/sdk/src/types/schemas.test.ts` covers `totalShares` parsing from plain objects, from the `Map` returned by `scValToNative`, numeric and string coercion to `bigint`, the absent-field default of `0n`, regression of the existing fields, and a compile-time check that `totalShares` is in the `PoolStats` interface. Run via `vitest run` together with the upstream SDK unit tests.
 
 ## How to verify
 
 ```
 pnpm install --frozen-lockfile
 pnpm build         # SDK + web
-pnpm test          # SDK (tsx --test) + web
+pnpm test          # SDK (vitest) + web
 pnpm --filter web lint
 (cd indexer && go build ./... && go vet ./... && go test ./...)
 ```
