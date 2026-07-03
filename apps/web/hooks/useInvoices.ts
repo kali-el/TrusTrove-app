@@ -68,6 +68,8 @@ export function useInvoices(filters?: {
   const invoicesQuery = useQuery<PaginatedInvoices>({
     queryKey: ["invoices", filters],
     queryFn: () => getInvoices(filters),
+    refetchInterval: 15000,
+    staleTime: 15000,
   });
 
   const createInvoiceMutation = useMutation({
@@ -258,6 +260,7 @@ export function useInvoice(id: string) {
     queryKey: ["invoice", id],
     queryFn: () => getInvoiceByID(id),
     enabled: !!id,
+    staleTime: 60000,
   });
 
   return {
