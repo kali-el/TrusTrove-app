@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { ArrowUpRight } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowUpRight, Pause, Play } from "lucide-react";
 
 interface TickerItem {
   id: string;
@@ -150,24 +150,56 @@ export function TopStatusBar() {
       </div>
 
       {/* Scrolling Ticker */}
-      <div className="flex-1 overflow-hidden relative h-4 flex items-center">
-        <div className="flex gap-12 whitespace-nowrap animate-[marquee_25s_linear_infinite] hover:[animation-play-state:paused]">
-          {[...tickerItems, ...tickerItems].map((item, idx) => (
-            <div
-              key={`${item.id}-${idx}`}
-              className="inline-flex items-center gap-2 text-[10px] font-mono"
-            >
-              <span className="text-slate-500">{item.country}</span>
-              <span className="text-slate-300 font-bold">{item.sme}</span>
-              <span className="text-primary font-bold">{item.amount}</span>
-              <span className="text-slate-500">at</span>
-              <span className="text-sky-400 font-semibold">
-                {item.discount} discount
-              </span>
-              <span className="text-slate-600">({item.time})</span>
-              <ArrowUpRight className="w-3 h-3 text-primary/45 shrink-0" />
-            </div>
-          ))}
+      <div 
+        className="flex-1 flex items-center gap-2 overflow-hidden"
+        role="status"
+        aria-live="polite"
+        aria-label="Recent network activity"
+      >
+        <button
+          onClick={() => setIsPaused(!isPaused)}
+          className="text-slate-500 hover:text-white focus:text-white shrink-0 z-10 transition-colors"
+          aria-label={isPaused ? "Play ticker" : "Pause ticker"}
+        >
+          {isPaused ? <Play className="w-3 h-3" /> : <Pause className="w-3 h-3" />}
+        </button>
+        <div className="flex-1 overflow-hidden relative h-4 flex items-center group">
+          <div className={`flex gap-12 whitespace-nowrap animate-[marquee_25s_linear_infinite] group-hover:[animation-play-state:paused] group-focus-within:[animation-play-state:paused] motion-reduce:animate-none ${isPaused ? '[animation-play-state:paused]' : ''}`}>
+            {tickerItems.map((item, idx) => (
+              <div
+                key={`${item.id}-${idx}`}
+                className="inline-flex items-center gap-2 text-[10px] font-mono"
+              >
+                <span className="text-slate-500">{item.country}</span>
+                <span className="text-slate-300 font-bold">{item.sme}</span>
+                <span className="text-primary font-bold">{item.amount}</span>
+                <span className="text-slate-500">at</span>
+                <span className="text-sky-400 font-semibold">
+                  {item.discount} discount
+                </span>
+                <span className="text-slate-600">({item.time})</span>
+                <ArrowUpRight className="w-3 h-3 text-primary/45 shrink-0" />
+              </div>
+            ))}
+            {/* Duplicate for seamless scrolling, hidden from screen readers */}
+            {tickerItems.map((item, idx) => (
+              <div
+                key={`dup-${item.id}-${idx}`}
+                aria-hidden="true"
+                className="inline-flex items-center gap-2 text-[10px] font-mono"
+              >
+                <span className="text-slate-500">{item.country}</span>
+                <span className="text-slate-300 font-bold">{item.sme}</span>
+                <span className="text-primary font-bold">{item.amount}</span>
+                <span className="text-slate-500">at</span>
+                <span className="text-sky-400 font-semibold">
+                  {item.discount} discount
+                </span>
+                <span className="text-slate-600">({item.time})</span>
+                <ArrowUpRight className="w-3 h-3 text-primary/45 shrink-0" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -178,6 +210,11 @@ export function TopStatusBar() {
           }
           100% {
             transform: translateX(-50%);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .animate-\\[marquee_25s_linear_infinite\\] {
+            animation: none !important;
           }
         }
       `}</style>
