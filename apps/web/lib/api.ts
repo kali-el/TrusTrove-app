@@ -1,4 +1,5 @@
 import { useWalletStore } from "@/store/wallet";
+import { parseInvoiceResponse } from "@/lib/parsers";
 import {
   AssetType,
   Invoice,
@@ -7,6 +8,12 @@ import {
   EventLog,
   PoolSnapshot,
 } from "@/types";
+import {
+  parseRawInvoice,
+  parseRawPoolStats,
+  parseRawLPPosition,
+  parseRawEventLog,
+} from "./transformers";
 
 const getApiUrl = () => {
   return process.env.NEXT_PUBLIC_INDEXER_API_URL || "http://localhost:8080";
@@ -91,6 +98,7 @@ export function parseRawPoolStats(raw: any): PoolStats {
     utilizationRateBps: Number(raw.utilization_rate_bps || 0),
     totalYieldDistributed: BigInt(raw.total_yield_distributed || 0),
     activeInvoiceCount: Number(raw.active_invoice_count || 0),
+    totalShares: BigInt(raw.total_shares || 0),
   };
 }
 
@@ -143,7 +151,7 @@ export async function createInvoice(
 
 export async function getInvoiceByID(id: string): Promise<Invoice> {
   const raw = await apiFetch<any>(`/invoices/${id}`);
-  return parseRawInvoice(raw);
+  return parseInvoiceResponse(raw);
 }
 
 export interface PaginatedInvoices {
@@ -176,7 +184,7 @@ export async function getInvoices(filters?: {
   }>(`/invoices${query}`);
 
   return {
-    data: raw.data.map(parseRawInvoice),
+    data: raw.data.map(parseInvoiceResponse),
     total: raw.total,
     page: raw.page,
     limit: raw.limit,
@@ -198,18 +206,6 @@ export async function getRecentEvents(limit?: number): Promise<EventLog[]> {
   const query = limit ? `?limit=${limit}` : "";
   const rawList = await apiFetch<any[]>(`/events${query}`);
   return rawList.map(parseRawEventLog);
-}
-
-function parseRawEventLog(raw: any): EventLog {
-  return {
-    id: raw.id,
-    event_id: raw.event_id,
-    contract_id: raw.contract_id,
-    ledger: raw.ledger,
-    ledger_closed_at: raw.ledger_closed_at,
-    event_type: raw.event_type,
-    data: raw.data || {},
-  };
 }
 
 export async function getPoolSnapshots(): Promise<PoolSnapshot[]> {

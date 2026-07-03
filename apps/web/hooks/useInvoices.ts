@@ -7,7 +7,9 @@ import {
 } from "@/lib/api";
 import { InvoiceClient, PoolClient } from "@trusttrove/sdk";
 import { useWalletStore } from "@/store/wallet";
+import { useTokenAllowance } from "./useTokenAllowance";
 import { showSuccessToast, showErrorToast } from "@/lib/toast";
+import { getUserFriendlyMessage } from "@/lib/errors";
 
 const invoiceContractID = process.env.NEXT_PUBLIC_INVOICE_CONTRACT_ID || "";
 const poolContractID = process.env.NEXT_PUBLIC_POOL_CONTRACT_ID || "";
@@ -61,10 +63,13 @@ export function useInvoices(filters?: {
 }) {
   const queryClient = useQueryClient();
   const { address } = useWalletStore();
+  const { ensureAllowance } = useTokenAllowance();
 
   const invoicesQuery = useQuery<PaginatedInvoices>({
     queryKey: ["invoices", filters],
     queryFn: () => getInvoices(filters),
+    refetchInterval: 15000,
+    staleTime: 15000,
   });
 
   const createInvoiceMutation = useMutation({
@@ -86,10 +91,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Created");
     },
     onError: (error) => {
-      showErrorToast(
-        "Invoice Creation Failed",
-        error instanceof Error ? error : undefined,
-      );
+      showErrorToast("Invoice Creation Failed", new Error(getUserFriendlyMessage(error)));
     },
   });
 
@@ -110,10 +112,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Listed for Financing");
     },
     onError: (error) => {
-      showErrorToast(
-        "Listing Failed",
-        error instanceof Error ? error : undefined,
-      );
+      showErrorToast("Listing Failed", new Error(getUserFriendlyMessage(error)));
     },
   });
 
@@ -130,10 +129,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Funded");
     },
     onError: (error) => {
-      showErrorToast(
-        "Funding Failed",
-        error instanceof Error ? error : undefined,
-      );
+      showErrorToast("Funding Failed", new Error(getUserFriendlyMessage(error)));
     },
   });
 
@@ -148,10 +144,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Shipped");
     },
     onError: (error) => {
-      showErrorToast(
-        "Shipping Failed",
-        error instanceof Error ? error : undefined,
-      );
+      showErrorToast("Shipping Failed", new Error(getUserFriendlyMessage(error)));
     },
   });
 
@@ -167,10 +160,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Delivery Confirmed");
     },
     onError: (error) => {
-      showErrorToast(
-        "Confirmation Failed",
-        error instanceof Error ? error : undefined,
-      );
+      showErrorToast("Confirmation Failed", new Error(getUserFriendlyMessage(error)));
     },
   });
 
@@ -178,6 +168,8 @@ export function useInvoices(filters?: {
     mutationFn: async ({ invoiceId }: { invoiceId: string }) => {
       if (!address) throw new Error("Wallet not connected");
       const invoiceClient = new InvoiceClient(invoiceContractID);
+      const invoice = await invoiceClient.get(invoiceId, address);
+      await ensureAllowance(invoiceContractID, invoice.faceValue);
       return invoiceClient.repay(invoiceId, address);
     },
     onSuccess: () => {
@@ -187,10 +179,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Repaid");
     },
     onError: (error) => {
-      showErrorToast(
-        "Repayment Failed",
-        error instanceof Error ? error : undefined,
-      );
+      showErrorToast("Repayment Failed", new Error(getUserFriendlyMessage(error)));
     },
   });
 
@@ -207,10 +196,7 @@ export function useInvoices(filters?: {
       showSuccessToast("Invoice Defaulted");
     },
     onError: (error) => {
-      showErrorToast(
-        "Default Action Failed",
-        error instanceof Error ? error : undefined,
-      );
+      showErrorToast("Default Action Failed", new Error(getUserFriendlyMessage(error)));
     },
   });
 
@@ -274,6 +260,7 @@ export function useInvoice(id: string) {
     queryKey: ["invoice", id],
     queryFn: () => getInvoiceByID(id),
     enabled: !!id,
+    staleTime: 60000,
   });
 
   return {

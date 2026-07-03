@@ -31,6 +31,7 @@ export interface Invoice {
   shippedAt: number | null;
   issuerConfirmed: boolean;
   buyerConfirmed: boolean;
+  buyerConfirmedAt?: number | null;
   repaidAt: number | null;
 }
 
@@ -41,6 +42,7 @@ export interface PoolStats {
   utilizationRateBps: number;
   totalYieldDistributed: bigint;
   activeInvoiceCount: number;
+  totalShares: bigint;
 }
 
 export interface LPPosition {

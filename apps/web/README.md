@@ -28,7 +28,13 @@ See the root [`README.md`](../../README.md) for the full project overview and de
 
 ## Environment setup
 
-The repository root `.env.example` is the single source of truth for frontend, SDK, and indexer variables. Copy it before starting local development:
+The web app has a frontend-only env template at [`.env.example`](.env.example). Copy it to [`.env.local`](.env.local) for a web-only setup:
+
+```bash
+cp .env.example .env.local
+```
+
+If you are running the full local stack, including the Go indexer/API, use the repository root env template instead so both the web app and indexer can share the same variables:
 
 ```bash
 cp ../../.env.example ../../.env.local
