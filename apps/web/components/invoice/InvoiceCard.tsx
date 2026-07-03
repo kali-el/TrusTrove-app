@@ -114,7 +114,7 @@ export function InvoiceCard({
   return (
     <div
       onClick={onSelect}
-      className={`relative overflow-hidden bg-card border transition-all duration-300 rounded-lg p-5 cursor-pointer hover:-translate-y-[2px] ${
+      className={`relative overflow-hidden bg-card border transition-all duration-300 rounded-lg p-5 cursor-pointer hover:-translate-y-0.5 ${
         isSelected
           ? "border-primary shadow-[0_0_24px_rgba(0,212,170,0.15)] bg-[#0d131a]"
           : "border-border hover:border-primary/50 hover:shadow-[0_0_24px_rgba(0,212,170,0.15)]"
