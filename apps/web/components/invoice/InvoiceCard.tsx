@@ -7,7 +7,6 @@ import { useInvoices } from "@/hooks/useInvoices";
 import { Button } from "@/components/ui/button";
 import { useWalletStore } from "@/store/wallet";
 import { useProfile } from "@/hooks/useProfile";
-import { motion } from "framer-motion";
 import {
   Calendar,
   ShieldAlert,
@@ -440,6 +439,6 @@ export function InvoiceCard({
           )}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

@@ -8,6 +8,12 @@ import {
   EventLog,
   PoolSnapshot,
 } from "@/types";
+import {
+  parseRawInvoice,
+  parseRawPoolStats,
+  parseRawLPPosition,
+  parseRawEventLog,
+} from "./transformers";
 
 const getApiUrl = () => {
   return process.env.NEXT_PUBLIC_INDEXER_API_URL || "http://localhost:8080";
@@ -159,18 +165,6 @@ export async function getRecentEvents(limit?: number): Promise<EventLog[]> {
   const query = limit ? `?limit=${limit}` : "";
   const rawList = await apiFetch<any[]>(`/events${query}`);
   return rawList.map(parseRawEventLog);
-}
-
-function parseRawEventLog(raw: any): EventLog {
-  return {
-    id: raw.id,
-    event_id: raw.event_id,
-    contract_id: raw.contract_id,
-    ledger: raw.ledger,
-    ledger_closed_at: raw.ledger_closed_at,
-    event_type: raw.event_type,
-    data: raw.data || {},
-  };
 }
 
 export async function getPoolSnapshots(): Promise<PoolSnapshot[]> {
