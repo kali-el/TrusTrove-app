@@ -109,6 +109,7 @@ export const invoiceSchema = z.object({
   shippedAt: nullableNumberSchema,
   issuerConfirmed: booleanSchema,
   buyerConfirmed: booleanSchema,
+  buyerConfirmedAt: nullableNumberSchema.optional(),
   repaidAt: nullableNumberSchema,
 });
 
@@ -125,6 +126,7 @@ export const poolStatsSchema = z.object({
   utilizationRateBps: numberSchema,
   totalYieldDistributed: bigintSchema,
   activeInvoiceCount: numberSchema,
+  totalShares: bigintSchema,
 });
 
 export function parsePoolStats(native: unknown): PoolStats {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Horizon } from "@stellar/stellar-sdk";
 import { useWalletStore } from "@/store/wallet";
 import { ASSET_INFO } from "@/lib/assets";
@@ -14,46 +14,37 @@ export interface Balances {
 const HORIZON_URL =
   process.env.NEXT_PUBLIC_HORIZON_URL || "https://horizon-testnet.stellar.org";
 
-export function useBalances() {
-  const { address, connected } = useWalletStore();
-  const [balances, setBalances] = useState<Balances>({ usdc: null, xlm: null });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+async function fetchBalancesFromHorizon(
+  address: string,
+  connected: boolean
+): Promise<Balances> {
+  if (!address || !connected) {
+    return { usdc: null, xlm: null };
+  }
 
-  const fetchBalances = useCallback(async () => {
-    if (!address || !connected) {
-      setBalances({ usdc: null, xlm: null });
-      setLoading(false);
-      setError(null);
-      return;
-    }
+  try {
+    const server = new Horizon.Server(HORIZON_URL);
+    const account = await server.loadAccount(address);
+    const usdcIssuer = ASSET_INFO.USDC.issuer;
 
-    setLoading(true);
-    setError(null);
+    let usdc: string | null = null;
+    let xlm: string | null = null;
 
-    try {
-      const server = new Horizon.Server(HORIZON_URL);
-      const account = await server.loadAccount(address);
-      const usdcIssuer = ASSET_INFO.USDC.issuer;
-
-      let usdc: string | null = null;
-      let xlm: string | null = null;
-
-      for (const balance of account.balances) {
-        if ("asset_type" in balance) {
-          if (balance.asset_type === "native") {
-            xlm = balance.balance;
-          } else if (
-            balance.asset_type === "credit_alphanum4" &&
-            "asset_code" in balance &&
-            balance.asset_code === "USDC" &&
-            "asset_issuer" in balance &&
-            balance.asset_issuer === usdcIssuer
-          ) {
-            usdc = balance.balance;
-          }
+    for (const balance of account.balances) {
+      if ("asset_type" in balance) {
+        if (balance.asset_type === "native") {
+          xlm = balance.balance;
+        } else if (
+          balance.asset_type === "credit_alphanum4" &&
+          "asset_code" in balance &&
+          balance.asset_code === "USDC" &&
+          "asset_issuer" in balance &&
+          balance.asset_issuer === usdcIssuer
+        ) {
+          usdc = balance.balance;
         }
       }
+    }
 
       setBalances({ usdc, xlm });
     } catch (err: unknown) {
@@ -69,17 +60,28 @@ export function useBalances() {
         captureError(err);
         setError("Failed to fetch balances");
       }
-    } finally {
-      setLoading(false);
     }
-  }, [address, connected]);
+    throw err;
+  }
+}
 
-  useEffect(() => {
-    if (!connected) return;
-    fetchBalances();
-    const interval = setInterval(fetchBalances, 30000);
-    return () => clearInterval(interval);
-  }, [connected, fetchBalances]);
+export function useBalances() {
+  const { address, connected } = useWalletStore();
 
-  return { balances, loading, error, refetch: fetchBalances };
+  const query = useQuery({
+    queryKey: ["balances", address, connected],
+    queryFn: () => fetchBalancesFromHorizon(address as string, connected),
+    enabled: !!address && connected,
+    refetchInterval: 30000,
+    refetchIntervalInBackground: false,
+    initialData: { usdc: null, xlm: null },
+    throwOnError: false,
+  });
+
+  return {
+    balances: query.data,
+    loading: query.isLoading,
+    error: query.error ? "Failed to fetch balances" : null,
+    refetch: query.refetch,
+  };
 }

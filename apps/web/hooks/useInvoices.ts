@@ -64,10 +64,13 @@ export function useInvoices(filters?: {
 }) {
   const queryClient = useQueryClient();
   const { address } = useWalletStore();
+  const { ensureAllowance } = useTokenAllowance();
 
   const invoicesQuery = useQuery<PaginatedInvoices>({
     queryKey: ["invoices", filters],
     queryFn: () => getInvoices(filters),
+    refetchInterval: 15000,
+    staleTime: 15000,
   });
 
   const createInvoiceMutation = useMutation({
@@ -166,6 +169,8 @@ export function useInvoices(filters?: {
     mutationFn: async ({ invoiceId }: { invoiceId: string }) => {
       if (!address) throw new Error("Wallet not connected");
       const invoiceClient = new InvoiceClient(invoiceContractID);
+      const invoice = await invoiceClient.get(invoiceId, address);
+      await ensureAllowance(invoiceContractID, invoice.faceValue);
       return invoiceClient.repay(invoiceId, address);
     },
     onSuccess: () => {
@@ -256,6 +261,7 @@ export function useInvoice(id: string) {
     queryKey: ["invoice", id],
     queryFn: () => getInvoiceByID(id),
     enabled: !!id,
+    staleTime: 60000,
   });
 
   return {

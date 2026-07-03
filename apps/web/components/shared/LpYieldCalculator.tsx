@@ -50,6 +50,7 @@ export function LpYieldCalculator() {
             <span className="text-primary font-bold">{utilization}%</span>
           </div>
           <input
+            id="lp-yield-utilization"
             type="range"
             min="10"
             max="100"
@@ -57,6 +58,10 @@ export function LpYieldCalculator() {
             value={utilization}
             onChange={(e) => setUtilization(parseInt(e.target.value))}
             className="w-full accent-primary bg-slate-900 h-1.5 rounded"
+            aria-label="Pool Utilization"
+            aria-valuenow={utilization}
+            aria-valuemin={10}
+            aria-valuemax={100}
           />
           <div className="flex justify-between text-[10px] text-slate-600 font-mono">
             <span>10%</span>
