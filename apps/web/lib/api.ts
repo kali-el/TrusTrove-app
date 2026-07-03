@@ -1,4 +1,5 @@
 import { useWalletStore } from "@/store/wallet";
+import { parseInvoiceResponse } from "@/lib/parsers";
 import {
   AssetType,
   Invoice,
@@ -48,6 +49,27 @@ async function apiFetch<T>(
   return res.json() as Promise<T>;
 }
 
+function parseRawPoolStats(raw: any): PoolStats {
+  return {
+    totalDeposits: BigInt(raw.total_deposits || 0),
+    totalFunded: BigInt(raw.total_funded || 0),
+    availableLiquidity: BigInt(raw.available_liquidity || 0),
+    utilizationRateBps: Number(raw.utilization_rate_bps || 0),
+    totalYieldDistributed: BigInt(raw.total_yield_distributed || 0),
+    activeInvoiceCount: Number(raw.active_invoice_count || 0),
+    totalShares: BigInt(raw.total_shares || 0),
+  };
+}
+
+function parseRawLPPosition(raw: any): LPPosition {
+  return {
+    shares: BigInt(raw.shares || 0),
+    usdcValue: BigInt(raw.usdc_value || 0),
+    yieldEarned: BigInt(raw.yield_earned || 0),
+    depositCount: Number(raw.deposit_count || 0),
+  };
+}
+
 export async function fetchChallenge(
   address: string,
 ): Promise<{ transaction: string; network_passphrase: string }> {
@@ -88,7 +110,7 @@ export async function createInvoice(
 
 export async function getInvoiceByID(id: string): Promise<Invoice> {
   const raw = await apiFetch<any>(`/invoices/${id}`);
-  return parseRawInvoice(raw);
+  return parseInvoiceResponse(raw);
 }
 
 export interface PaginatedInvoices {
@@ -121,7 +143,7 @@ export async function getInvoices(filters?: {
   }>(`/invoices${query}`);
 
   return {
-    data: raw.data.map(parseRawInvoice),
+    data: raw.data.map(parseInvoiceResponse),
     total: raw.total,
     page: raw.page,
     limit: raw.limit,
